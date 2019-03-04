@@ -1546,99 +1546,87 @@ try {
 
 ## 8.Handler机制
 
-**通信的同步**（Synchronous）：指向客户端发送请求后，**必须要在服务端有回应后客户端才继续发送其它的请求**，所以这时所有请求将会在服务端得到同步，直到服务端返回请求。
+​	**通信的同步**（Synchronous）：指向客户端发送请求后，**必须要在服务端有回应后客户端才继续发送其它的请求**，所以这时所有请求将会在服务端得到同步，直到服务端返回请求。
 
-  **通信的异步**（Asynchronous）：指客户端在发送请求后，**不必等待服务端的回应就可以发送下一个请求**。
+ 	**通信的异步**（Asynchronous）：指客户端在发送请求后，**不必等待服务端的回应就可以发送下一个请求**。
 
-  所谓**同步调用**，就是在一个函数或方法调用时，没有得到结果之前，该调用就不返回，直到返回结果。**异步调用**和同步是相对的，在一个异步调用发起后，**被调用者立即返回给调用者**，但是调用者不能立刻得到结果，被调用都在实际处理这个调用的请求完成后，通过状态、通知或回调等方式来通知调用者请求处理的结果。
+​	所谓**同步调用**，就是在一个函数或方法调用时，没有得到结果之前，该调用就不返回，直到返回结果。**异步调用**和同步是相对的，在一个异步调用发起后，**被调用者立即返回给调用者**，但是调用者不能立刻得到结果，被调用都在实际处理这个调用的请求完成后，通过状态、通知或回调等方式来通知调用者请求处理的结果。
 
-  android的消息处理有三个核心类：Looper,Handler和Message。其实还有一Message Queue（消息队列），但是MQ被封装到Looper里面了，我们不会直接与MQ打交道，所以它不算是个核心类。
+ 	android的消息处理有三个核心类：Looper,Handler和Message。其实还有一Message Queue（消息队列），但是MQ被封装到Looper里面了，我们不会直接与MQ打交道，所以它不算是个核心类。
 
- 
+### （1）消息类：Message类
 
-**1. 消息类：Message类**
+​	android.os.Message的主要功能是进行消息的封装，同时可以指定消息的操作形式，Message类定义的变量和常用方法如下：
 
- android.os.Message的主要功能是进行消息的封装，同时可以指定消息的操作形式，Message类定义的变量和常用方法如下：
+（1）`public int what`：变量，用于定义此Message属于何种操作
 
-（1）public int what：变量，用于定义此Message属于何种操作
+（2）`public Object obj`：变量，用于定义此Message传递的信息数据，通过它传递信息
 
-（2）public Object obj：变量，用于定义此Message传递的信息数据，通过它传递信息
+（3）`public int arg1`：变量，传递一些整型数据时使用
 
-（3）public int arg1：变量，传递一些整型数据时使用
+（4）`public int arg2`：变量，传递一些整型数据时使用
 
-（4）public int arg2：变量，传递一些整型数据时使用
+（5）`public Handler getTarget()`：普通方法，取得操作此消息的Handler对象。 
 
-（5）public Handler getTarget()：普通方法，取得操作此消息的Handler对象。 
+​	在整个消息处理机制中，**message**又叫task，**封装了**任务携带的**信息**和处理该任务的**handler**。message的用法比较简单，但是有这么几点需要注意：
 
-  在整个消息处理机制中，**message**又叫task，**封装了**任务携带的**信息**和处理该任务的**handler**。message的用法比较简单，但是有这么几点需要注意：
+（1）尽管Message有public的默认构造方法，但是你应该通过 `Message.obtain()` 来从消息池中获得空消息对象，以节省资源。
 
-（1）尽管Message有public的默认构造方法，但是你应该通过Message.obtain()来从消息池中获得空消息对象，以节省资源。
+（2）如果你的message只需要携带简单的**int**信息，请优先使用 `Message.arg1` 和 `Message.arg2` 来传递信息，这比用Bundle更省内存
 
-（2）如果你的message只需要携带简单的**int**信息，请优先使用Message.arg1和Message.arg2来传递信息，这比用Bundle更省内存
+（3）擅用 `message.what` 来**标识信息**，以便用不同方式处理message。
 
-（3）擅用message.**what**来**标识信息**，以便用不同方式处理message。
+（4）使用 `setData()` 存放 `Bundle` 对象。？？？
 
-（4）使用setData()存放**Bundle**对象。？？？
+### （2）消息通道：Looper
 
- 
+​	在使用Handler处理Message时，需要**Looper**（通道）来完成。在一个**Activity中，系统会自动帮用户启动Looper对象**，而在一个用户**自定义的类中，则需要用户手工调用Looper类中的方法，然后才可以正常启动Looper对象**。Looper的字面意思是“循环者”，它被设计**用来使一个普通线程变成Looper线程**。所谓Looper线程就是循环工作的线程。在程序开发中（尤其是GUI开发中），我们经常会需要一个线程不断循环，一旦有新任务则执行，执行完继续等待下一个任务，这就是Looper线程。使用Looper类创建Looper线程很简单：
 
-**2. 消息通道：Looper**
-
-  在使用Handler处理Message时，需要**Looper**（通道）来完成。在一个**Activity中，系统会自动帮用户启动Looper对象**，而在一个用户**自定义的类中，则需要用户手工调用Looper类中的方法，然后才可以正常启动Looper对象**。Looper的字面意思是“循环者”，它被设计**用来使一个普通线程变成Looper线程**。所谓Looper线程就是循环工作的线程。在程序开发中（尤其是GUI开发中），我们经常会需要一个线程不断循环，一旦有新任务则执行，执行完继续等待下一个任务，这就是Looper线程。使用Looper类创建Looper线程很简单：
-
-```
+```java
 `public` `class` `LooperThread ``extends` `Thread {``    ``@Override``    ``public` `void` `run() {``        ``// 将当前线程初始化为Looper线程``        ``Looper.prepare();``        ` `        ``// ...其他处理，如实例化handler``        ` `        ``// 开始循环处理消息队列``        ``Looper.loop();``    ``}``}`
 ```
 
-通过上面两行核心代码，你的线程就升级为Looper线程了！那么这两行代码都做了些什么呢？
+​	通过上面两行核心代码，你的线程就升级为Looper线程了！那么这两行代码都做了些什么呢？
 
-1)**Looper.prepare()：创建Loop而对象。**
+**1)Looper.prepare()：创建Loop而对象。**
 
  [![img](http://static.oschina.net/uploads/space/2014/0622/191427_qA5K_1391648.png)](http://static.oschina.net/uploads/space/2014/0622/191427_qA5K_1391648.png)
 
-  通过上图可以看到，现在你的线程中有一个Looper对象，它的内部维护了一个消息队列MQ。注意，**一个Thread只能有一个Looper对象**，为什么呢？来看一下源码
+​	通过上图可以看到，现在你的线程中有一个Looper对象，它的内部维护了一个消息队列MQ。注意，**一个Thread只能有一个Looper对象**，为什么呢？来看一下源码
 
-```
+```java
 ` ``public` `class` `Looper {``    ``// **每个线程中的Looper对象其实是一个ThreadLocal，即线程本地存储(TLS)对象**``    ``private` **static** **final** `ThreadLocal sThreadLocal = ``new` `ThreadLocal();``    ``// Looper内的消息队列``    `**final MessageQueue mQueue;**`    ``// 当前线程``    ``Thread mThread;``    ``//其他属性``    ``// 每个Looper对象中有它的消息队列，和它所属的线程``    ``private` `Looper() {``        ``mQueue = ``new` `MessageQueue();``        ``mRun = ``true``;``        ``mThread = Thread.currentThread();``    ``}``    ``// **我们调用该方法会在调用线程的TLS中创建Looper对象**``    ``public` `static` `final` `void` `**prepare()** {``        ``if` `(sThreadLocal.get() != ``null``) {``            ``// 试图在有Looper的线程中再次创建Looper将抛出异常``            ``throw` `new` `RuntimeException(``"Only one Looper may be created per thread"``);``        ``}``        ``sThreadLocal.set(``new` `Looper());``    ``}``    ``// 其他方法``}`
 ```
 
-  prepare()背后的工作方式一目了然，其核心就是将looper对象定义为ThreadLocal。
+  	prepare()背后的工作方式一目了然，其核心就是将looper对象定义为ThreadLocal。
 
- 
-
-2）**Looper.loop()：循环获取MQ中的消息，并发送给相应Handler对象。**
+**2）Looper.loop()：循环获取MQ中的消息，并发送给相应Handler对象。**
 
 [![img](http://static.oschina.net/uploads/space/2014/0622/191839_DyBM_1391648.png)](http://static.oschina.net/uploads/space/2014/0622/191839_DyBM_1391648.png)
 
-  调用loop方法后，Looper线程就开始真正工作了，它不断从自己的MQ中取出队头的消息(也叫任务)执行。其源码分析如下：
+​	调用loop方法后，Looper线程就开始真正工作了，它不断从自己的MQ中取出队头的消息(也叫任务)执行。其源码分析如下：
 
-```
+```java
 `  ``public` `static` `final` `void` `**loop()** {``        ``Looper me = myLooper();  ``//得到当前线程Looper``        ``MessageQueue queue = me.mQueue;  ``//得到当前looper的MQ``        ` `        ``Binder.clearCallingIdentity();``        ``final` `long` `ident = Binder.clearCallingIdentity();``        ``// 开始循环``        ``while` `(``true``) {``            ``Message msg = queue.next(); ``// 取出message``            ``if` `(msg != ``null``) {``                ``if` `(msg.target == ``null``) {``                    ``// message没有target为结束信号，退出循环``                    ``return``;``                ``}``                ``// 日志``                ``if` `(me.mLogging!= ``null``) me.mLogging.println(``                        ``">>>>> Dispatching to "` `+ msg.target + ``" "``                        ``+ msg.callback + ``": "` `+ msg.what``                        ``);``                ``// **非常重要！将真正的处理工作交给message的target，即后面要讲的handler**``                `**msg.target.dispatchMessage(msg);**`                ``// 日志``                ``if` `(me.mLogging!= ``null``) me.mLogging.println(``                        ``"<<<<< Finished to    "` `+ msg.target + ``" "``                        ``+ msg.callback);``                ` `                ``final` `long` `newIdent = Binder.clearCallingIdentity();``                ``if` `(ident != newIdent) {``                    ``Log.wtf(``"Looper"``, ``"Thread identity changed from 0x"``                            ``+ Long.toHexString(ident) + ``" to 0x"``                            ``+ Long.toHexString(newIdent) + ``" while dispatching to "``                            ``+ msg.target.getClass().getName() + ``" "``                            ``+ msg.callback + ``" what="` `+ msg.what);``                ``}``                ``// 回收message资源``                ``msg.recycle();``            ``}``        ``}``    ``}`
 ```
 
- 
+ 	除了prepare()和loop()方法，Looper类还提供了一些有用的方法，比如**Looper.myLooper()**得到**当前线程looper对象**：
 
-  除了prepare()和loop()方法，Looper类还提供了一些有用的方法，比如**Looper.myLooper()**得到**当前线程looper对象**：
-
-```
+```java
 `    ``public` `static` `final` `Looper myLooper() {``        ``// 在任意线程调用Looper.myLooper()返回的都是那个线程的looper``        ``return` `(Looper)**sThreadLocal.get();**``    ``}`
 ```
 
   **getThread()得到looper对象所属线程：**
 
- 
-
-```
+```java
 `    ``public` `Thread getThread() {``        ``return` `mThread;``    ``}`
 ```
 
   **quit()方法结束looper循环：**
 
-```
+```java
 `    ``public` `void` `quit() {``        ``// 创建一个空的message，它的target为NULL，表示结束循环消息``        ``Message msg = Message.obtain();``        ``// 发出消息``        ``mQueue.enqueueMessage(msg, ``0``);``    ``}`
 ```
-
- 
 
 综上，Looper有以下几个要点：
 
@@ -1648,21 +1636,17 @@ try {
 
 3）**Looper使一个线程变成Looper线程**。
 
-**那么，我们如何操作Message Queue上的消息呢？这就是Handler的用处了**
+### （3）消息操作类：Handler类
 
- 
+ 	Message对象封装了所有的消息，而这些消息的操作需要android.os.Handler类完成。什么是handler？**handler**起到了**处理MQ上的消息**的作用（只处理由自己发出的消息），即**通知MQ它要执行一个任务(sendMessage)，并在loop到自己的时候执行该任务(handleMessage)，整个过程是异步的**。**handler创建时会关联一个looper，默认的构造方法将关联当前线程的looper，不过这也是可以set的**。默认的构造方法：
 
-**3. 消息操作类：Handler类**
-
-  Message对象封装了所有的消息，而这些消息的操作需要android.os.Handler类完成。什么是handler？**handler**起到了**处理MQ上的消息**的作用（只处理由自己发出的消息），即**通知MQ它要执行一个任务(sendMessage)，并在loop到自己的时候执行该任务(handleMessage)，整个过程是异步的**。**handler创建时会关联一个looper，默认的构造方法将关联当前线程的looper，不过这也是可以set的**。默认的构造方法：
-
-```
+```java
 `public` `class` `handler {``    ``final` `MessageQueue mQueue;  ``// **关联的MQ**``    ``final` `Looper mLooper;  ``// **关联的loope**r``    ``final` `Callback mCallback; ``    ``// 其他属性``    ``public` `Handler() {``        ``if` `(FIND_POTENTIAL_LEAKS) {``            ``final` `Class<? ``extends` `Handler> klass = getClass();``            ``if` `((klass.isAnonymousClass() || klass.isMemberClass() || klass.isLocalClass()) &&``                    ``(klass.getModifiers() & Modifier.STATIC) == ``0``) {``                ``Log.w(TAG, ``"The following Handler class should be static or leaks might occur: "` `+ klass.getCanonicalName());``            ``}``        ``}``        ``// **默认将关联当前线程的looper**``        ``mLooper = Looper.myLooper();``        ``// **looper不能为空，即该默认的构造方法只能在looper线程中使用**``        ``if` `(mLooper == ``null``) {``            ``throw` `new` `RuntimeException(``                ``"Can't create handler inside thread that has not called Looper.prepare()"``);``        ``}``        ``// **重要！！！直接把关联looper的MQ作为自己的MQ，因此它的消息将发送到关联looper的MQ上**``        ``mQueue = mLooper.mQueue;``        ``mCallback = ``null``;``    ``}``    ` `    ``// 其他方法``}`
 ```
 
   下面我们就可以为之前的LooperThread类加入Handler：
 
-```
+```java
 `public` `class` `LooperThread ``extends` `Thread {``    ``private` `Handler handler1;``    ``private` `Handler handler2;` `    ``@Override``    ``public` `void` `run() {``        `**// 将当前线程初始化为Looper线程**`        ``Looper.prepare();``        ` `        ``// 实例化两个handler``        ``handler1 = ``new` `Handler();``        ``handler2 = ``new` `Handler();``        ` `        ``// 开始循环处理消息队列``        ``Looper.loop();``    ``}``}`
 ```
 
@@ -1690,9 +1674,9 @@ try {
 
 **sendMessageDelayed(Message, long)**
 
-  这些方法向MQ上发送消息了。**光看这些API你可能会觉得handler能发两种消息，一种是Runnable对象，一种是message对象，这是直观的理解，但其实post发出的Runnable对象最后都被封装成message对象了**，见源码：
+​	这些方法向MQ上发送消息了。**光看这些API你可能会觉得handler能发两种消息，一种是Runnable对象，一种是message对象，这是直观的理解，但其实post发出的Runnable对象最后都被封装成message对象了**，见源码：
 
-```
+```java
 `    ``// 此方法用于向关联的MQ上发送Runnable对象，它的run方法将在handler关联的looper线程中执行``    ``public` `final` `boolean` `post(Runnable r)``    ``{``       ``// 注意getPostMessage(r)将runnable封装成message``       ``return`  `sendMessageDelayed(getPostMessage(r), ``0``);``    ``}` `    ``private` `final` `Message getPostMessage(Runnable r) {``        ``Message m = Message.obtain();  ``//得到空的message``        ``m.callback = r;  ``//将runnable设为message的callback，``        ``return` `m;``    ``}` `    ``public` `boolean` `sendMessageAtTime(Message msg, ``long` `uptimeMillis)``    ``{``        ``boolean` `sent = ``false``;``        ``MessageQueue queue = mQueue;``        ``if` `(queue != ``null``) {``            ``msg.target = ``this``;  ``// message的target必须设为该handler！``            ``sent = queue.enqueueMessage(msg, uptimeMillis);``        ``}``        ``else` `{``            ``RuntimeException e = ``new` `RuntimeException(``                ``this` `+ ``" sendMessageAtTime() called with no mQueue"``);``            ``Log.w(``"Looper"``, e.getMessage(), e);``        ``}``        ``return` `sent;``    ``}`
 ```
 
@@ -1700,7 +1684,7 @@ try {
 
 1.**message.target为该handler对象**，这确保了looper执行到该message时能找到处理它的handler，即loop()方法中的关键代码
 
-```
+```java
 msg.target.dispatchMessage(msg);
 ```
 
@@ -1712,22 +1696,25 @@ msg.target.dispatchMessage(msg);
 
 完成的，见源码 
 
-1. public void dispatchMessage(Message msg) {  
-2. ​        if (msg.callback != null) {  
-3. ​            handleCallback(msg);  
-4. ​        } else {  
-5. ​            if (mCallback != null) {  
-6. ​                if (mCallback.handleMessage(msg)) {  
-7. ​                    return;  
-8. ​                }  
-9. ​            }  
-10. ​            handleMessage(msg);  
-11. ​        }  
-12. ​    } 
+```java
+/**
+ * Handle system messages here.
+ */
+    public void dispatchMessage(Message msg) {
+        if (msg.callback != null) {
+            handleCallback(msg);
+        } else {
+            if (mCallback != null) {
+                if (mCallback.handleMessage(msg)) {
+                    return;
+                }
+            }
+            handleMessage(msg);
+        }
+    }
+```
 
- 
-
-  可以看到，除了handleMessage(Message msg)和Runnable对象的run方法由开发者实现外（实现具体逻辑），handler的内部工作机制对开发者是透明的。Handler拥有下面两个重要的特点：
+​	可以看到，除了handleMessage(Message msg)和Runnable对象的run方法由开发者实现外（实现具体逻辑），handler的内部工作机制对开发者是透明的。Handler拥有下面两个重要的特点：
 
 1)handler可以在**任意线程发送消息**，这些消息会被添加到关联的MQ上
 
@@ -1737,96 +1724,15 @@ msg.target.dispatchMessage(msg);
 
 [![img](http://static.oschina.net/uploads/space/2014/0622/194541_22eQ_1391648.png)](http://static.oschina.net/uploads/space/2014/0622/194541_22eQ_1391648.png)
 
-  这就解决了android最经典的不能在其他非主线程中更新UI的问题。**android的主线程也是一个looper线程**(looper在android中运用很广)，我们在其中创建的handler默认将关联主线程MQ。因此，利用**handler的一个solution就是在activity中创建handler并将其引用传递给worker thread，worker thread执行完任务后使用handler发送消息通知activity更新UI**。(过程如图)
+​	这就解决了android最经典的不能在其他非主线程中更新UI的问题。**android的主线程也是一个looper线程**(looper在android中运用很广)，我们在其中创建的handler默认将关联主线程MQ。因此，利用**handler的一个solution就是在activity中创建handler并将其引用传递给worker thread，worker thread执行完任务后使用handler发送消息通知activity更新UI**。(过程如图)
 
 [![img](http://static.oschina.net/uploads/space/2014/0622/194707_TItG_1391648.png)](http://static.oschina.net/uploads/space/2014/0622/194707_TItG_1391648.png)
 
- 
-
-下面给出sample代码，仅供参考：
-
- 
-
-```
-  TestDriverActivity  Activity {
-     TextView textview;
-    
-    @Override
-      onCreate(Bundle savedInstanceState) {
-        .onCreate(savedInstanceState);
-        setContentView(R.layout.main);
-        textview = (TextView) findViewById(R.id.textview);
-                Thread workerThread =  Thread( SampleTask( MyHandler()));
-        workerThread.start();
-    }
-    
-      appendText(String msg) {
-        textview.setText(textview.getText() + "\n" + msg);
-    }
-    
-     MyHandler  Handler {
-        @Override
-          handleMessage(Message msg) {
-            String result = msg.getData().getString("message");
-                        appendText(result);
-        }
-    }
-}
-```
-
- 
-
-```
-  SampleTask  Runnable {
-       String TAG = SampleTask..getSimpleName();
-    Handler handler;
-    
-     SampleTask(Handler handler) {
-        ();
-        .handler = handler;
-    }
-
-    @Override
-      run() {
-         {              Thread.sleep(5000);
-                        Message msg = prepareMessage("task completed!");
-                        handler.sendMessage(msg);
-        }  (InterruptedException e) {
-            Log.d(TAG, "interrupted!");
-        }
-
-    }
-
-     Message prepareMessage(String str) {
-        Message result = handler.obtainMessage();
-        Bundle data =  Bundle();
-        data.putString("message", str);
-        result.setData(data);
-         result;
-    }
-
-}
-```
-
- 
-
- 
-
- 
-
-## [android Handler 机制研究学习笔记](http://www.cnblogs.com/youxilua/archive/2011/11/25/2263825.html) （原理图）
-
-转自：http://www.cnblogs.com/youxilua/archive/2011/11/25/2263825.html
-
- 
-
-> 前言: 很早以前,学习android的时候就接触过Handler ,知道Handler是一个用于线程间通信的类,最常用于做下载条,最近,看了Pro android 3 这本书,里面描述的Handler 说得非常的细致,与此,写下Handler的学习笔记
-
-## Android 运行的进程
+### （4）Android 运行的进程
 
 >   为了,更好的了解Handler的机制,我们应该首先,将Android系统整个运行进程都要烂熟于心,下面是**android 进程运行图**:
 >
-> [![androidProcess](https://images.cnblogs.com/cnblogs_com/youxilua/201111/201111252149039531.jpg)](http://images.cnblogs.com/cnblogs_com/youxilua/201111/201111252148562558.jpg) 
+> ![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/Android进程图.png)
 >
 > 从图中我们可以看到,**当我们从外部调用组件的时候,Service 和 ContentProvider 是从线程池那里获取线程,而Activity 和BroadcastReceiver是直接在主线程运行**,为了,追踪线程,我们可以用debug 方法,或者使用一个工具类,这里,我们创建一个用于监视线程的工具类
 >
