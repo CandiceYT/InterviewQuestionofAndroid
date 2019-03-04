@@ -1,152 +1,6 @@
 [TOC]
 
-## 1.ListView与RecyclerView的区别
-
-链接： [https://www.jianshu.com/p/f592f3715ae2](https://www.jianshu.com/p/f592f3715ae2)
-
-从以下三点切入：
-
-​      1）布局效果对比
-
-​      2）常用功能与API对比
-
-​      3）在`Android` L引入嵌套滚动机制`（NestedScrolling）`
-
-`ListView`与`RecyclerView`的简单使用：
-
-   **ListView**：
-
-1. 继承重写`BaseAdapter`类； 
-2. 自定义`ViewHolder`与`convertView`的优化（判断是否为null）；
-
-   **RecyclerView**：
-
-1. 继承重写`RecyclerView.Adapter`与`RecyclerView.ViewHolder` 
-
-2. 设置`LayoutManager`，以及`layout`的布局效果
-
-   **区别：** 
-
-1. `ViewHolder`的编写规范化，`ListView`是需要自己定义的，而`RecyclerView`是规范好的； 
-
-2. `RecyclerView`复用`item`全部搞定，不需要像`ListView`那样`setTag()`与`getTag()`； 
-
-3. `RecyclerView`多了一些`LayoutManager`工作，但实现了布局效果多样化；
-
-  **布局效果：**
-
-​        `ListView` 的布局比较单一，只有一个纵向效果；
-
-​        `RecyclerView` 的布局效果丰富， 可以在`LayoutMananger`中设置：线性布局（纵向，横向），表格布局，瀑布流布局，在`RecyclerView` 中，如果存在的`LayoutManager`不能满足需求，可以在`LayoutManager`的API中自定义`Layout`： 
-
-​       例如：`scrollToPosition(), setOrientation(), getOrientation(), findViewByPosition()`等等；
-
-  **空数据处理：**
-
-​       在`ListView`中有个`setEmptyView()` 用来处理`Adapter`中数据为空的情况；但是在`RecyclerView`中没有这个API，所以在`RecyclerView`中需要进行一些数据判断来实现数据为空的情况；
-
- **HeaderView 与 FooterView：**
-
-​        在`ListView`中可以通过`addHeaderView()` 与 `addFooterView()`来添加头部`item`与底部 `item`，当我们需要实现的下拉刷新或者上拉加载的情况；而且这两个API不会影响 `Adapter` 的编写；但是`RecyclerView`中并没有这两个API，所以当我们需要在`RecyclerView`添加头部`item`或者底部 `item` 的时候，我们可以在 `Adapter` 中自己编写，根据 `ViewHolder` 的 `Type` 与 `View` 来实现自己的 `Header，Footter` 与普通的 `item`，但是这样就会影响到 `Adapter` 的数据，比如 `position`，添加了 `Header` 与 `Footter` 后，实际的 `position` 将大于数据的`position`；
-
-​    **局部刷新：**
-
-​       在`ListView`中通常刷新数据是用 `notifyDataSetChanged()`  ，但是这种刷新数据是全局刷新的（每个item的数据都会重新加载一遍），这样一来就会非常消耗资源；`RecyclerView` 中可以实现局部刷新，例如：`notifyItemChanged()`；
-
-​       但是如果要在 `ListView` 实现局部刷新，依然是可以实现的，当一个 `item` 数据刷新时，我们可以在 `Adapter`中，实现一个`onItemChanged()`方法，在方法里面获取到这个 `item` 的 `position`（可以通过`getFirstVisiblePosition()`），然后调用 `getView()` 方法来刷新这个 `item` 的数据；
-
-   **动画效果：**
-
-​        在 `RecyclerView` 中，已经封装好API来实现自己的动画效果；有许多动画API，例如：`notifyItemChanged(), notifyDataInserted(), notifyItemMoved()`等等；如果我们需要实现自己的动画效果，我们可以通过相应的接口实现自定义的动画效果（`RecyclerView.ItemAnimator`类），然后调用`RecyclerView.setItemAnimator()` (默认的有`SimpleItemAnimator与DefaultItemAnimator`)；但是ListView并没有实现动画效果，但我们可以在 `Adapter` 自己实现item的动画效果；
-
-   **ItemTouchHelper**：
-
-​        创建`ItemTouchHelper`实例，然后在`ItemTouchHelper.SimpleCallback()`，然后在`Callback`中实现`getMovementFlags(), onMove(), onSwiped()`， 最后调用`RecyclerView`的`attachToRecyclerView`方法；提供的滑动和删除`Item`的工具类。
-
-   **Item点击事件：**
-
-​          在ListView中有`onItemClickListener(), onItemLongClickListener(), onItemSelectedListener(),` 但是添加HeaderView与FooterView后就不一样了，因为HeaderView与FooterView都会算进position中，这时会发现position会出现变化，可能会抛出数组越界，为了解决这个问题，我们在getItemId()方法（在该方法中HeaderView与FooterView返回的值是-1）中通过返回id来标志对应的item，而不是通过position来标记；但是我们可以在Adapter中针对每个item写在getView()中会比较合适；而在RecyclerView中，提供了唯一一个API：addOnItemTouchListener()，监听item的触摸事件；我们可以通过RecyclerView的addOnItemTouchListener()加上系统提供的Gesture Detector来实现像ListView那样监听某个item某个  操作方法；
-
-​    **嵌套滚动机制：**
-
-​        在事件分发机制中，Touch事件在进行分发的时候，由父View向子View传递，一旦子View消费这个事件的话，那么接下来的事件分发的时候，父View将不接受，由子View进行处理；但是与Android的事件分发机制不同，嵌套滚动机制（Nested Scrolling）可以弥补这个不足，能让子View与父View同时处理这个Touch事件，主要实现在于NestedScrollingChild与NestedScrollingParent这两个接口；而在RecyclerView中，实现的是NestedScrollingChild，所以能实现嵌套滚动机制；
-
-​        ListView就没有实现嵌套滚动机制；
-
-**总结：**
-
-​        这里只是客观的分析ListView与RecyclerView的差异，而在实际场景中，我们应该根据自己的需求来选择使用RecyclerView还是ListView，毕竟，适合业务需求的才是最好的。
-
-## 2.RecyclerView的拖拽怎么实现?
-
-​        ItemTouchHelper是support v7包提供的处理关于在RecyclerView上添加拖动排序与滑动删除的非常强大的工具类。它是RecyclerView.ItemDecoration的子类，也就是说它可以轻易的添加到几乎所有的LayoutManager和Adapter中。见`DefaultItemTouchHelpCallback.java`文件
-
-​       具体说一下`ItemTouchHelper.Callback`这个抽象类：
-
-​    `getMovementFlags()` 
-
-​        用于设置是否处理拖拽事件和滑动事件，以及拖拽和滑动操作的方向，有以下两种情况：
-
-​        如果是列表类型的，拖拽只有`ItemTouchHelper.UP、ItemTouchHelper.DOWN`两个方向
-
-​        如果是网格类型的，拖拽则有`UP、DOWN、LEFT、RIGHT`四个方向
-
-​        另外，滑动方向列表类型的，有START和END两个方法，如果是网格类型的一般不设置支持滑动操作可以将swipeFlags = 0置为0，表示不支持滑动操作！ 
-
-​        最后，需要调用`return makeMovementFlags(dragFlags, swipeFlags)`;将设置的标志位return回去！
-
-​      `onMove()` 
-
-​         如果我们设置了相关的dragFlags ，那么当我们长按item的时候就会进入拖拽并在拖拽过程中不断回调onMove()方法,我们就在这个方法里获取当前拖拽的item和已经被拖拽到所处位置的item的ViewHolder。
-
-​      `onSwipe()` 
-
-​        如果我们设置了相关的swipeFlags，那么当我们滑动item的时候就会调用onSwipe()方法，一般的话在使用LinearLayoutManager的时候，在这个方法里可以删除item，来实现滑动删除！
-
-​        就是说，如果我们不重写这两个方法，那么拖拽和滑动都是默认开启的，如果需要我们自定义拖拽和滑动，可以设置为false，然后调用startDrag()和startSwipe()方法来开启！
-
-  还有两个方法，可以使用户交互更加友好： 
-
-1) `public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState)`
-
- 这个方法在选中Item的时候（拖拽或者滑动开始的时候）调用，通常这个方法里我们可以改变选中item的背景颜色等，高亮表示选中来提高用户体验。 
-
- 需要注意的是，这里的第二个参数int actionState，它有以下3个值，分别表示3种状态：
-
-ACTION_STATE_IDLE：闲置状态
-
-ACTION_STATE_SWIPE：滑动状态
-
-ACTION_STATE_DRAG：拖拽状态
-
-我们可以根据这个状态值，作不同的逻辑处理！ 
-
-2) `public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder)`
-
-这个方法在当手指松开的时候（拖拽或滑动完成的时候）调用，这时候我们可以将item恢复为原来的状态。
-
-最后在代码中：
-
-```java
-ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new SimpleItemTouchCallback(data, adapter));
-
-itemTouchHelper.attachToRecyclerView(recyclerView);
-```
-
-## 3.ListView回收机制
-
-链接：[http://www.cnblogs.com/qiengo/p/3628235.html#_Toc383693206](http://www.cnblogs.com/qiengo/p/3628235.html#_Toc383693206)
-
-## 4.MVP和MVVM的区别
-
-链接：[**https://www.cnblogs.com/dubo-/p/5619077.html**](https://www.cnblogs.com/dubo-/p/5619077.html)
-
-​          [**https://blog.csdn.net/victoryzn/article/details/78392128**](https://blog.csdn.net/victoryzn/article/details/78392128)
-
-​         [https://www.jianshu.com/p/ebd2c5914d20](https://www.jianshu.com/p/ebd2c5914d20
-)
-
-## 5.HashMap内部实现原理，与HashSet的区别
+## 1.HashMap内部实现原理，与HashSet的区别
 
 ​       1) HashMap可以接受null键值和值，而HashTable则不能，HashMap是非synchronized的；存储的是键值对。
 
@@ -174,302 +28,9 @@ jdk1.8
 
 <https://www.cnblogs.com/little-fly/p/7344285.html>
 
-<https://www.cnblogs.com/tongxuping/p/8276198.html>
+https://www.cnblogs.com/tongxuping/p/8276198.html
 
-## 6.AsyncTask内部实现原理
-
-链接：<https://www.cnblogs.com/absfree/p/5357678.html>
-
-​           https://www.jianshu.com/p/ee1342fcf5e7
-
-### 1) AsyncTask的使用简介
-
-​        AsyncTask是对Handler与线程池的封装。使用它的方便之处在于能够更新用户界面，当然这里更新用户界面的操作还是在主线程中完成的，但是由于AsyncTask内部包含一个Handler，所以可以发送消息给主线程让它更新UI。另外，AsyncTask内还包含了一个线程池。使用线程池的主要原因是避免不必要的创建及销毁线程的开销。设想下面这样一个场景：有100个只需要0.001ms就能执行完毕的任务，如果创建100个线程来执行这些任务，执行完任务的线程就进行销毁。那么创建与销毁进程的开销就很可能成为了影响性能的瓶颈。通过使用线程池，我们可以实现维护固定数量的线程，不管有多少任务，我们都始终让线程池中的线程轮番上阵，这样就避免了不必要的开销。
-
-​       在这里简单介绍下AsyncTask的使用方法，为后文对它的工作原理的研究做铺垫，关于AsyncTask的详细介绍大家可以参考官方文档或是相关博文。
-
-​    AsyncTask是一个抽象类，我们在使用时需要定义一个它的派生类并重写相关方法。AsyncTask类的声明如下：
-
-```java
-public abstract class AsyncTask<Params, Progress, Result> 
-```
-
-​    我们可以看到，AsyncTask是一个泛型类，它的三个类型参数的含义如下：
-
-- Params：doInBackground方法的参数类型；
-- Progress：AsyncTask所执行的后台任务的进度类型；
-- Result：后台任务的返回结果类型。
-
-​    我们再来看一下AsyncTask类主要为我们提供了哪些方法：
-
-```java
-onPreExecute() //此方法会在后台任务执行前被调用，用于进行一些准备工作
-doInBackground(Params... params) //此方法中定义要执行的后台任务，在这个方法中可以调用publishProgress来更新任务进度（publishProgress内部会调用onProgressUpdate方法）
-onProgressUpdate(Progress... values) //由publishProgress内部调用，表示任务进度更新
-onPostExecute(Result result) //后台任务执行完毕后，此方法会被调用，参数即为后台任务的返回结果
-onCancelled() //此方法会在后台任务被取消时被调用
-```
-
-​    以上方法中，除了doInBackground方法由AsyncTask内部线程池执行外，其余方法均在主线程中执行。
-
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/AsyncTask.png)
-
-### 2) AsyncTask的局限性
-
-​        AsyncTask的优点在于执行完后台任务后可以很方便的更新UI，然而使用它存在着诸多的限制。先抛开内存泄漏问题，使用AsyncTask主要存在以下局限性：
-
-- 在Android 4.1版本之前，AsyncTask类必须在主线程中加载，这意味着对AsyncTask类的第一次访问必须发生在主线程中；在Android 4.1以及以上版本则不存在这一限制，因为ActivityThread（代表了主线程）的main方法中会自动加载AsyncTask
-- AsyncTask对象必须在主线程中创建
-- AsyncTask对象的execute方法必须在主线程中调用
-- 一个AsyncTask对象只能调用一次execute方法
-
-​    接下来，我们从源码的角度去探究一下AsyncTask的工作原理，并尝试着搞清楚为什么会存在以上局限性。
-
-### 3) AsyncTask的工作原理
-
-   首先，让我们来看一下AsyncTask类的构造器都做了些什么：
-
-```java
- 1 public AsyncTask() {
- 2         mWorker = new WorkerRunnable<Params, Result>() {
- 3             public Result call() throws Exception {
- 4                 mTaskInvoked.set(true);
- 5 
- 6                 Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
- 7                 //noinspection unchecked
- 8                 Result result = doInBackground(mParams);
- 9                 Binder.flushPendingCommands();
-10                 return postResult(result);
-11             }
-12         };
-13 
-14         mFuture = new FutureTask<Result>(mWorker) {
-15             @Override
-16             protected void done() {
-17                 try {
-18                     postResultIfNotInvoked(get());
-19                 } catch (InterruptedException e) {
-20                     android.util.Log.w(LOG_TAG, e);
-21                 } catch (ExecutionException e) {
-22                     throw new RuntimeException("An error occurred while executing doInBackground()",
-23                             e.getCause());
-24                 } catch (CancellationException e) {
-25                     postResultIfNotInvoked(null);
-26                 }
-27             }
-28         };
-29     }
-```
-
-​        在第2行到第12行，初始化了mWorker，它是一个派生自WorkRunnable类的对象。WorkRunnable是一个抽象类，它实现了Callable<Result>接口。我们再来看一下第4行开始的call方法的定义，首先将mTaskInvoked设为true表示当前任务已被调用过，然后在第6行设置线程的优先级。在第8行我们可以看到，调用了AsyncTask对象的doInBackground方法开始执行我们所定义的后台任务，并获取返回结果存入result中。最后将任务返回结果传递给postResult方法。关于postResult方法我们会在下文进行分析。由此我们可以知道，实际上AsyncTask的成员mWorker包含了AyncTask最终要执行的任务（即mWorker的call方法）。
-
-​       接下来让我们看看对mFuture的初始化。我们可以看到mFuture是一个FutureTask的直接子类（匿名内部类）的对象，在FutureTask的构造方法中我们传入了mWorker作为参数。我们使用的是FutureTask的这个构造方法：
-
-```java
-    public FutureTask(Callable<V> callable) {
-        if (callable == null)
-            throw new NullPointerException();
-        this.callable = callable;
-        this.state = NEW;       // ensure visibility of callable
-    }
-```
-
-​       也就是说，mFuture是一个封装了我们的后台任务的FutureTask对象，FutureTask类实现了FutureRunnable接口，通过这个接口可以方便的取消后台任务以及获取后台任务的执行结果，具体介绍请看这里：[Java并发编程：Callable、Future和FutureTask](http://www.cnblogs.com/dolphin0520/p/3949310.html)。
-
-​        从上面的分析我们知道了，当mWorker中定义的call方法被执行时，doInBackground就会开始执行，我们定义的后台任务也就真正开始了。那么这个call方法什么时候会被调用呢？我们可以看到经过层层封装，实际上是mFuture对象封装了call方法，当mFuture对象被提交到AsyncTask包含的线程池执行时，call方法就会被调用，我们定义的后台任务也就开始执行了。下面我们来看一下mFuture是什么时候被提交到线程池执行的。
-
-​       首先来看一下execute方法的源码：
-
-```java
- public final AsyncTask<Params, Progress, Result> execute(Params... params) {
-        return executeOnExecutor(sDefaultExecutor, params);
-}
-```
-
-​        我们可以看到它接收的参数是Params类型的参数，这个参数会一路传递到doInBackground方法中。execute方法仅仅是调用了executeOnExecutor方法，并将executeOnExecutor方法的返回值作为自己的返回值。我们注意到，传入了sDefaultExecutor作为executeOnExecutor方法的参数，那么sDefaultExecutor是什么呢？简单的说，它是AsyncTask的默认执行器（线程池）。AsyncTask可以以串行（一个接一个的执行）或并行（一并执行）两种方式来执行后台任务，在Android3.0及以后的版本中，默认的执行方式是串行。这个sDefaultExecutor就代表了默认的串行执行器（线程池）。也就是说我们平常在AsyncTask对象上调用execute方法，使用的是串行方式来执行后台任务。关于线程池更加详细的介绍与分析请见：[深入理解Java之线程池](http://www.cnblogs.com/absfree/p/5357118.html)
-
-​    我们再来看一下executeOnExecutor方法都做了些什么：
-
-```java
- 1 public final AsyncTask<Params, Progress, Result> executeOnExecutor(Executor exec,
- 2             Params... params) {
- 3         if (mStatus != Status.PENDING) {
- 4             switch (mStatus) {
- 5                 case RUNNING:
- 6                     throw new IllegalStateException("Cannot execute task:"
- 7                             + " the task is already running.");
- 8                 case FINISHED:
- 9                     throw new IllegalStateException("Cannot execute task:"
-10                             + " the task has already been executed "
-11                             + "(a task can be executed only once)");
-12             }
-13         }
-14 
-15         mStatus = Status.RUNNING;
-16 
-17         onPreExecute();
-18 
-19         mWorker.mParams = params;
-20         exec.execute(mFuture);
-21 
-22         return this;
-23     }
-```
-
-​       从以上代码的第4行到第12行我们可以知道，当AsyncTask对象的当前状态为RUNNING或FINISHED时，调用execute方法会抛出异常，这意味着不能对正在执行任务的AsyncTask对象或是已经执行完任务的AsyncTask对象调用execute方法，这也就解释了我们上面提到的局限中的最后一条。
-
-​       接着我们看到第17行存在一个对onPreExecute方法的调用，这表示了在执行后台任务前确实会调用onPreExecute方法。
-
-​       在第19行，把我们传入的execute方法的params参数赋值给了mWorker的mParams成员变量；而后在第20行调用了exec的execute方法，并传入了mFuture作为参数。exec就是我们传进来的sDefaultExecutor。那么接下来我们看看sDefaultExecutor究竟是什么。在AsyncTask类的源码中，我们可以看到这句：
-
-```java
-private static volatile Executor sDefaultExecutor = SERIAL_EXECUTOR;
-```
-
-​     sDefaultExecutor被赋值为SERIAL_EXECUTOR，那么我们来看一下SERIAL_EXECUTOR：
-
-```java
-public static final Executor SERIAL_EXECUTOR = new SerialExecutor();
-```
-
-​        现在，我们知道了实际上sDefaultExecutor是一个SerialExecutor对象，我们来看一下SerialExecutor类的源码：
-
-```java
- 1 private static class SerialExecutor implements Executor {
- 2         final ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
- 3         Runnable mActive;
- 4 
- 5         public synchronized void execute(final Runnable r) {
- 6             mTasks.offer(new Runnable() {
- 7                 public void run() {
- 8                     try {
- 9                         r.run();
-10                     } finally {
-11                         scheduleNext();
-12                     }
-13                 }
-14             });
-15             if (mActive == null) {
-16                 scheduleNext();
-17             }
-18         }
-19 
-20         protected synchronized void scheduleNext() {
-21             if ((mActive = mTasks.poll()) != null) {
-22                 THREAD_POOL_EXECUTOR.execute(mActive);
-23             }
-24         }
-25     }
-```
-
-​         我们来看一下execute方法的实现。mTasks代表了SerialExecutor这个串行线程池的任务缓存队列，在第6行，我们用offer方法向任务缓存队列中添加一个任务，任务的内容如第7行到第13行的run方法定义所示。我们可以看到，run方法中：第9行调用了mFuture（第5行的参数r就是我们传入的mFuture）的run方法，而mFuture的run方法内部会调用mWorker的call方法，然后就会调用doInBackground方法，我们的后台任务也就开始执行了。那么我们提交到任务缓存队列中的任务什么时候会被执行呢？我们接着往下看。
-
-​        首先我们看到第三行定义了一个Runnable变量mActive，它代表了当前正在执行的AsyncTask对象。第15行判断mActive是否为null，若为null，就调用scheduleNext方法。如第20行到24行所示，在scheduleNext方法中，若缓存队列非空，则调用THREAD_POOL_EXECUTOR.execute方法执行从缓存队列中取出的任务，这时我们的后台任务便开始你真正执行了。
-
-​     通过以上的分析，我们可以知道SerialExecutor所完成的工作主要是把任务加到任务缓存队列中，而真正执行任务的是THREAD_POOL_EXECUTOR。我们来看下THREAD_POOL_EXECUTOR是什么：
-
-```java
- public static final Executor THREAD_POOL_EXECUTOR
-            = new ThreadPoolExecutor(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE,
-                    TimeUnit.SECONDS, sPoolWorkQueue, sThreadFactory);
-```
-
-​    从上面的代码我们可以知道，它是一个线程池对象。根据AsyncTask的源码，我们可以获取它的各项参数如下：
-
-```java
- 1 private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
- 2 private static final int CORE_POOL_SIZE = CPU_COUNT + 1;
- 3 private static final int MAXIMUM_POOL_SIZE = CPU_COUNT * 2 + 1;
- 4 private static final int KEEP_ALIVE = 1;
- 5 
- 6 private static final ThreadFactory sThreadFactory = new ThreadFactory() {
- 7     private final AtomicInteger mCount = new AtomicInteger(1);
- 8 
- 9     public Thread newThread(Runnable r) {
-10         return new Thread(r, "AsyncTask #" + mCount.getAndIncrement());
-11     }
-12 };
-13 
-14 private static final BlockingQueue<Runnable> sPoolWorkQueue =
-15             new LinkedBlockingQueue<Runnable>(128);
-```
-
-​     由以上代码我们可以知道：
-
--  CORE_POOL_SIZE为CPU数加一；
-- MAXIMUM_POOL_SIZE为CPU数的二倍加一；
-- 存活时间为1秒；
-- 任务缓存队列为LinkedBlockingQueue。
-
-​        现在，我们已经了解到了从我们调用AsyncTask对象的execute方法开始知道后台任务执行完都发生了什么。现在让我们回过头来看一看之前提到的postResult方法的源码：
-
-```java
-private Result postResult(Result result) {
-    @SuppressWarnings("unchecked")
-    Message message = getHandler().obtainMessage(MESSAGE_POST_RESULT,
-            new AsyncTaskResult<Result>(this, result));
-    message.sendToTarget();
-    return result;
-}
-```
-
-​         在以上源码中，先调用了getHandler方法获取AsyncTask对象内部包含的sHandler，然后通过它发送了一个MESSAGE_POST_RESULT消息。我们来看看sHandler的相关代码：
-
-```java
- 1 private static final InternalHandler sHandler = new InternalHandler();
- 2 
- 3 private static class InternalHandler extends Handler {
- 4         public InternalHandler() {
- 5             super(Looper.getMainLooper());
- 6         }
- 7 
- 8         @SuppressWarnings({"unchecked", "RawUseOfParameterizedType"})
- 9         @Override
-10         public void handleMessage(Message msg) {
-11             AsyncTaskResult<?> result = (AsyncTaskResult<?>) msg.obj;
-12             switch (msg.what) {
-13                 case MESSAGE_POST_RESULT:
-14                     // There is only one result
-15                     result.mTask.finish(result.mData[0]);
-16                     break;
-17                 case MESSAGE_POST_PROGRESS:
-18                     result.mTask.onProgressUpdate(result.mData);
-19                     break;
-20             }
-21         }
-22 } 
-```
-
-​         从以上代码中我们可以看到，sHandler是一个静态的Handler对象。我们知道创建Handler对象时需要当前线程的Looper，所以我们为了以后能够通过sHandler将执行环境从后台线程切换到主线程（即在主线程中执行handleMessage方法），我们必须使用主线程的Looper，因此必须在主线程中创建sHandler。这也就解释了为什么必须在主线程中加载AsyncTask类，是为了完成sHandler这个静态成员的初始化工作。
-
-​       在以上代码第10行开始的handleMessage方法中，我们可以看到，当sHandler收到MESSAGE_POST_RESULT方法后，会调用finish方法，finish方法的源码如下：
-
-```java
-1 private void finish(Result result) {
-2         if (isCancelled()) {
-3             onCancelled(result);
-4         } else {
-5             onPostExecute(result);
-6         }
-7         mStatus = Status.FINISHED;
-8 }
-```
-
-​        在第2行，会通过调用isCancelled方法判断AsyncTask任务是否被取消，若取消了则调用onCancelled方法，否则调用onPostExecute方法；在第7行，把mStatus设为FINISHED，表示当前AsyncTask对象已经执行完毕。
-
-​        经过了以上的分析，我们大概了解了AsyncTask的内部运行逻辑，知道了它默认使用串行方式执行任务。那么如何让它以并行的方式执行任务呢？ 阅读了以上的代码后，我们不难得到结论，只需调用executeOnExecutor方法，并传入THREAD_POOL_EXECUTOR作为其线程池即可。
-
-**优点：**
-
-1.方便异步通信，不需使用 “任务线程（如继承`Thread`类） + `Handler`”的复杂组合。
-
-2.节省资源，采用线程池的缓存线程 + 复用线程，避免了频繁创建 & 销毁线程所带来的系统资源开销。
-
-### 4) AsyncTask各个方法的作用
-
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/AsyncTask各个方法的作用.png)
-
-## 7.Java多线程
+## 2.Java多线程
 
 ### 1) 并发与并行
 
@@ -561,7 +122,7 @@ t.start();
 
 ​        在Java中，每个线程都有一个优先级，默认情况下，线程会继承它的父线程的优先级。可以用setPriority方法来改变线程的优先级。Java中定义了三个描述线程优先级的常量：MAX_PRIORITY、NORM_PRIORITY、MIN_PRIORITY。
 
-​        每当线程调度器要调度一个新的线程时，它会首先选择优先级较高的线程。然而线程优先级是高度依赖与操作系统的，在有些系统的Java虚拟机中，甚至会忽略线程的优先级。因此我们不应该将程序逻辑的正确性依赖于优先级。线程优先级相关的API如下：
+每当线程调度器要调度一个新的线程时，它会首先选择优先级较高的线程。然而线程优先级是高度依赖与操作系统的，在有些系统的Java虚拟机中，甚至会忽略线程的优先级。因此我们不应该将程序逻辑的正确性依赖于优先级。线程优先级相关的API如下：
 
 ```java
 void setPriority(int newPriority) //设置线程的优先级，可以使用系统提供的三个优先级常量
@@ -588,7 +149,7 @@ public static native void sleep(long millis) throws InterruptedException; //让�
 public static native void sleep(long millis, int nanos) throws InterruptedException; //在毫秒数的基础上还指定了纳秒数，控制粒度更加精细
 ```
 
--  **join方法**，这是一个实例方法，在当前线程中对一个线程对象调用join方法会导致当前线程停止运行，等那个线程运行完毕后再接着运行当前线程。也就是说，把当前线程还没执行的部分“接到”另一个线程后面去，另一个线程运行完毕后，当前线程再接着运行。join方法有以下重载版本：
+- **join方法**，这是一个实例方法，在当前线程中对一个线程对象调用join方法会导致当前线程停止运行，等那个线程运行完毕后再接着运行当前线程。也就是说，把当前线程还没执行的部分“接到”另一个线程后面去，另一个线程运行完毕后，当前线程再接着运行。join方法有以下重载版本：
 
 ```java
 public final synchronized void join() throws InterruptedException 
@@ -599,12 +160,11 @@ public final synchronized void join(long millis, int nanos) throws InterruptedEx
 ​         无参数的join表示当前线程一直等到另一个线程运行完毕，这种情况下当前线程会处于Wating状态；带参数的表示当前线程只等待指定的时间，这种情况下当前线程会处于Time Waiting状态。**当前线程通过调用join方法进入Time Waiting或Waiting状态后，会释放已经获取的锁。**实际上，join方法内部调用了Object类的实例方法wait，关于这个方法我们下面会具体介绍。
 
 - **yield方法**，这是一个静态方法，作用是让当前线程“让步”，目的是为了让优先级不低于当前线程的线程有机会运行，**这个方法不会释放锁。**
-
 - **interrupt方法**，这是一个实例方法。每个线程都有一个中断状态标识，这个方法的作用就是将相应线程的中断状态标记为true，这样相应的线程调用isInterrupted方法就会返回true。**通过使用这个方法，能够终止那些通过调用可中断方法进入阻塞状态的线程。**常见的可中断方法有sleep、wait、join，这些方法的内部实现会时不时的检查当前线程的中断状态，若为true会立刻抛出一个InterruptedException异常，从而终止当前线程。
 
-​     以下这幅图很好的诠释了随着各种方法的调用，线程在不同的状态之间的切换（图片来源：<http://www.cnblogs.com/dolphin0520/p/3920357.html>）：
+ 以下这幅图很好的诠释了随着各种方法的调用，线程在不同的状态之间的切换（图片来源：<http://www.cnblogs.com/dolphin0520/p/3920357.html>）：
 
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/Java-Thread .png)
+![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/Java-Thread%20.png)
 
 ### 8) wait方法与notify/notifyAll方法
 
@@ -686,7 +246,7 @@ public final synchronized void join(long millis, int nanos) throws InterruptedEx
 67 }
 ```
 
-​        以上代码描述的是经典的“生产者-消费者”问题。Consumer类代表消费者，Producer类代表生产者。在生产者进行生产之前（对应第48行的produce方法），会获取queue的内部锁（monitor）。然后判断队列是否已满，若满了则无法再生产，所以在第54行调用queue.wait方法，从而等待在queue对象上。（释放了queue的内部锁）此时生产者能够能够获取queue的monitor从而进入第21行的consume方法，这样一来它就会通过第33行的queue.poll方法进行消费，于是队列不再满了，接着它在第34行调用queue.notify方法来通知正在等待的生产者，生产者就会从刚才阻塞的wait方法（第54行）中返回。
+以上代码描述的是经典的“生产者-消费者”问题。Consumer类代表消费者，Producer类代表生产者。在生产者进行生产之前（对应第48行的produce方法），会获取queue的内部锁（monitor）。然后判断队列是否已满，若满了则无法再生产，所以在第54行调用queue.wait方法，从而等待在queue对象上。（释放了queue的内部锁）此时生产者能够能够获取queue的monitor从而进入第21行的consume方法，这样一来它就会通过第33行的queue.poll方法进行消费，于是队列不再满了，接着它在第34行调用queue.notify方法来通知正在等待的生产者，生产者就会从刚才阻塞的wait方法（第54行）中返回。
 
 ​       同理，当队列空时，消费者也会等待（第27行）生产者来唤醒（第61行）。
 
@@ -715,7 +275,7 @@ public class Counter {
 - 第二步，把相应寄存器的值加上value的值；
 - 第三步，把寄存器的值写回count变量。
 
-​    我们可以编译以上代码然后用javap查看下编译器为我们生成的字节码：
+我们可以编译以上代码然后用javap查看下编译器为我们生成的字节码：
 
 ![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/count-javap.png)
 
@@ -723,7 +283,7 @@ public class Counter {
 
 ​        像add这种方法代码所在的内存区，我们称之为临界区（critical area）。对于临界区，在同一时刻我们只希望有一个线程能够访问它，我们希望在一个线程进入临界区后把通往这个区的门“上锁”，离开后把门"解锁“，这样当一个线程执行临界区的代码时其他想要进来的线程只能在门外等着，这样可以保证了多个线程共享的数据不会被破坏。下面我们来介绍下为临界区“上锁”的方法。
 
-#### （2）锁对象
+#### 2）锁对象
 
 ​        Java类库中为我们提供了能够给临界区“上锁”的ReentrantLock类，它实现了Lock接口，在进一步介绍ReentrantLock类之前，我们先来看一下Lock接口的定义：
 
@@ -779,7 +339,7 @@ public void add(long value) {
 
 ​        ReentrantLock锁是**可重入的**，这意味着线程可以重复获得已经持有的锁，每个锁对象内部都持有一个计数，每当线程获取依次锁对象，这个计数就加1，释放一次就减1。只有当计数值变为0时，才意味着这个线程释放了锁对象，这时其他线程才可以来获取。
 
-#### （3）条件对象
+#### 3）条件对象
 
 ​        有些时候，线程进入临界区后不能立即执行，它需要等某一条件满足后才开始执行。比如，我们希望count值大于5的时候才增加它的值，我们最先想到的是加个条件判断：
 
@@ -807,7 +367,7 @@ public void add(int value) {
 }
 ```
 
-​       在以上代码中，若线程A发现count值小于等于5，它会一直等到别的线程增加它的值直到它大于5。然而线程A此时持有锁对象，其他线程无法进入临界区（add方法内部）来改变count的值，所以当线程A进入临界区时若count小于等于5，线程A会一直在循环中等待，其他的线程也无法进入临界区。这种情况下，**我们可以使用条件对象来管理那些已经获得了一个锁却不能开始干活的线程**。一个锁对象可以有一个或多个相关的条件对象，在锁对象上调用 `newCondition` 方法就可以获得一个条件对象。比如我们可以为“count值大于5”获得一个条件对象：
+ 在以上代码中，若线程A发现count值小于等于5，它会一直等到别的线程增加它的值直到它大于5。然而线程A此时持有锁对象，其他线程无法进入临界区（add方法内部）来改变count的值，所以当线程A进入临界区时若count小于等于5，线程A会一直在循环中等待，其他的线程也无法进入临界区。这种情况下，**我们可以使用条件对象来管理那些已经获得了一个锁却不能开始干活的线程**。一个锁对象可以有一个或多个相关的条件对象，在锁对象上调用 `newCondition` 方法就可以获得一个条件对象。比如我们可以为“count值大于5”获得一个条件对象：
 
 ```java
 Condition enoughCount = myLock.newCondition();
@@ -861,6 +421,7 @@ public synchronized void add(int value) {
 ​        对象内部锁存在一些局限性：
 
 - **不能中断一个正在试图获取锁的线程；**
+
 - **试图获取锁时不能设定超时；**
 - **每个锁仅有一个相关条件；**
 
@@ -882,7 +443,7 @@ synchronized (obj) {
 }
 ```
 
-​      一个线程执行上面的代码块便可以获取obj对象的内部锁，直至它离开这个代码块才会释放锁。
+ 一个线程执行上面的代码块便可以获取obj对象的内部锁，直至它离开这个代码块才会释放锁。
 
 ​      我们经常会看到一种特殊的锁，如下所示：
 
@@ -909,7 +470,7 @@ public class Counter {
 
 #### （7）死锁
 
-​        假设现在进程中只有线程A和线程B这两个线程，考虑下面这样一种情形：
+ 假设现在进程中只有线程A和线程B这两个线程，考虑下面这样一种情形：
 
 ​       线程A获取了counterA对象的内部锁，线程B获取了counterB对象的内部锁。而线程A只有在获取counterB的内部锁后才能继续执行，线程B只有在获取线程A的内部锁后才能继续执行。这样一来，两个线程在互相等待对方释放锁从而谁也没法继续执行，这种现象就叫做死锁（deadlock）。
 
@@ -943,6 +504,8 @@ public interface ReadWriteLock {
 
 ​        我们可以看到这个接口就定义了两个方法，其中readLock方法用来获取一个“读锁”，writeLock方法用来获取一个“写锁”。
 
+我们可以看到这个接口就定义了两个方法，其中readLock方法用来获取一个“读锁”，writeLock方法用来获取一个“写锁”。
+
 ​        ReentrantReadWriteLock类的使用步骤通常如下所示：
 
 ```java
@@ -973,123 +536,126 @@ try {
 ​     在使用ReentrantReadWriteLock类时，我们需要注意以下两点：
 
 - 若当前已经有线程占用了**读锁**，其他要申请**写锁**的线程需要占用读锁的线程释放了读锁才能申请成功；
+
 - 若当前已经有线程占用了**写锁**，其他要申请**读锁或写锁**的线程都需要等待占用写锁的线程释放了写锁才能申请成功。
 
-### 10 )阻塞队列
+	### 10 )阻塞队列
 
-​       以上我们所介绍的都属于Java并发机制的底层基础设施。在实际编程我们应该尽量避免使用以上介绍的较为底层的机制，而使用Java类库中提供给我们封装好的较高层次的抽象。对于许多同步问题，我们可以通过使用一个或多个队列来解决：生产者线程向队列中插入元素，消费者线程则取出他们。考虑一下我们最开始提到的Counter类，我们可以通过队列来这样解决它的同步问题：增加计数值的线程不能直接访问Counter对象，而是把add指令对象插入到队列中，然后由另一个可访问Counter对象的线程从队列中取出add指令对象并执行add操作（只有这个线程能访问Counter对象，因此无需采取额外措施来同步）。
+	​       以上我们所介绍的都属于Java并发机制的底层基础设施。在实际编程我们应该尽量避免使用以上介绍的较为底层的机制，而使用Java类库中提供给我们封装好的较高层次的抽象。对于许多同步问题，我们可以通过使用一个或多个队列来解决：生产者线程向队列中插入元素，消费者线程则取出他们。考虑一下我们最开始提到的Counter类，我们可以通过队列来这样解决它的同步问题：增加计数值的线程不能直接访问Counter对象，而是把add指令对象插入到队列中，然后由另一个可访问Counter对象的线程从队列中取出add指令对象并执行add操作（只有这个线程能访问Counter对象，因此无需采取额外措施来同步）。
 
-​       当试图向满队列中添加元素或者向空队列中移除元素时，阻塞队列（blocking queue）会导致线程阻塞。通过阻塞队列，我们可以按以下模式来工作：工作者线程可以周期性的将中间结果放入阻塞队列中，其他线程可取出中间结果并进行进一步操作。若前者工作的比较慢（还没来得及向队列中插入元素），后者会等待它（试图从空队列中取元素从而阻塞）；若前者运行的快（试图向满队列中插元素），它会等待其他线程。阻塞队列提供了以下方法：
+	​       当试图向满队列中添加元素或者向空队列中移除元素时，阻塞队列（blocking queue）会导致线程阻塞。通过阻塞队列，我们可以按以下模式来工作：工作者线程可以周期性的将中间结果放入阻塞队列中，其他线程可取出中间结果并进行进一步操作。若前者工作的比较慢（还没来得及向队列中插入元素），后者会等待它（试图从空队列中取元素从而阻塞）；若前者运行的快（试图向满队列中插元素），它会等待其他线程。阻塞队列提供了以下方法：
 
-- add方法：添加一个元素。若队列已满，会抛出IllegalStateException异常。
-- element方法：返回队列的头元素。若队列为空，会抛出NoSuchElementException异常。
-- offer方法：添加一个元素，若成功则返回true。若队列已满，则返回false。
-- peek方法：返回队列的头元素。若队列为空，则返回null。
-- poll方法：删除并返回队列的头元素。若队列为空，则返回null。
-- put方法：添加一个元素。若队列已满，则阻塞。
-- remove方法：移除并返回头元素。若队列为空，会抛出NoSuchElementException。
-- take方法：移除并返回头元素。若队列为空，则阻塞。
+	- add方法：添加一个元素。若队列已满，会抛出IllegalStateException异常。
+	- element方法：返回队列的头元素。若队列为空，会抛出NoSuchElementException异常。
+	- offer方法：添加一个元素，若成功则返回true。若队列已满，则返回false。
+	- peek方法：返回队列的头元素。若队列为空，则返回null。
+	- poll方法：删除并返回队列的头元素。若队列为空，则返回null。
+	- put方法：添加一个元素。若队列已满，则阻塞。
+	- remove方法：移除并返回头元素。若队列为空，会抛出NoSuchElementException。
+	- take方法：移除并返回头元素。若队列为空，则阻塞。
 
-​    java.util.concurrent包提供了以下几种阻塞队列：
+	​    java.util.concurrent包提供了以下几种阻塞队列：
 
-- LinkedBlockingQueue是一个基于链表实现的阻塞队列。默认容量没有上限，但也有可以指定最大容量的构造方法。它有的“双端队列版本”为LinkedBlockingDeque。
-- ArrayBlockingQueue是一个基于数组实现的阻塞队列，它在构造时需要指定容量。它还有一个构造方法可以指定一个公平性参数，若这个参数为true，那么等待了最长时间的线程会得到优先处理（指定公平性参数会降低性能）。
-- PriorityBlockingQueue是一个基于堆实现的带优先级的阻塞队列。元素会按照它们的优先级被移除队列。
+	- LinkedBlockingQueue是一个基于链表实现的阻塞队列。默认容量没有上限，但也有可以指定最大容量的构造方法。它有的“双端队列版本”为LinkedBlockingDeque。
+	- ArrayBlockingQueue是一个基于数组实现的阻塞队列，它在构造时需要指定容量。它还有一个构造方法可以指定一个公平性参数，若这个参数为true，那么等待了最长时间的线程会得到优先处理（指定公平性参数会降低性能）。
+	- PriorityBlockingQueue是一个基于堆实现的带优先级的阻塞队列。元素会按照它们的优先级被移除队列。
 
-​    下面我们来看一个使用阻塞队列的示例：
+	下面我们来看一个使用阻塞队列的示例：
 
-```java
-public class BlockingQueueTest {
-    private int size = 20;
-    private ArrayBlockingQueue<Integer> blockingQueue = new ArrayBlockingQueue<Integer>(size);
-     
-    public static void main(String[] args)  {
-        BlockingQueueTest test = new BlockingQueueTest();
-        Producer producer = test.new Producer();
-        Consumer consumer = test.new Consumer();
-         
-        producer.start();
-        consumer.start();
-    }
-     
-    class Consumer extends Thread{
-        @Override
-        public void run() {
-             while(true){
-                try {
-                    //从阻塞队列中取出一个元素
-                    queue.take();
-                    System.out.println("队列剩余" + queue.size() + "个元素");
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-     
-    class Producer extends Thread{         
-        @Override
-        public void run() {
-            while (true) {
-                try {
-                    //向阻塞队列中插入一个元素
-                    queue.put(1);
-                    System.out.println("队列剩余空间：" + (size - queue.size()));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-}
-```
+	```java
+	public class BlockingQueueTest {
+	    private int size = 20;
+	    private ArrayBlockingQueue<Integer> blockingQueue = new ArrayBlockingQueue<Integer>(size);
+	     
+	    public static void main(String[] args)  {
+	        BlockingQueueTest test = new BlockingQueueTest();
+	        Producer producer = test.new Producer();
+	        Consumer consumer = test.new Consumer();
+	         
+	        producer.start();
+	        consumer.start();
+	    }
+	     
+	    class Consumer extends Thread{
+	        @Override
+	        public void run() {
+	             while(true){
+	                try {
+	                    //从阻塞队列中取出一个元素
+	                    queue.take();
+	                    System.out.println("队列剩余" + queue.size() + "个元素");
+	                } catch (InterruptedException e) {
+	                    e.printStackTrace();
+	                }
+	            }
+	        }
+	    }
+	     
+	    class Producer extends Thread{         
+	        @Override
+	        public void run() {
+	            while (true) {
+	                try {
+	                    //向阻塞队列中插入一个元素
+	                    queue.put(1);
+	                    System.out.println("队列剩余空间：" + (size - queue.size()));
+	                } catch (InterruptedException e) {
+	                    e.printStackTrace();
+	                }
+	            }
+	        }
+	    }
+	}
+	```
 
-​       在以上代码中，我们有一个生产者线程不断地向一个阻塞队列中插入元素，同时消费者线程从这个队列中取出元素。若生产者生产的比较快，消费者取的比较慢导致队列满，此时生产者再尝试插入时就会阻塞在put方法中，直到消费者取出一个元素；反过来，若消费者消费的比较快，生产者生产的比较慢导致队列空，此时消费者尝试从中取出时就会阻塞在take方法中，直到生产者插入一个元素。
+	在以上代码中，我们有一个生产者线程不断地向一个阻塞队列中插入元素，同时消费者线程从这个队列中取出元素。若生产者生产的比较快，消费者取的比较慢导致队列满，此时生产者再尝试插入时就会阻塞在put方法中，直到消费者取出一个元素；反过来，若消费者消费的比较快，生产者生产的比较慢导致队列空，此时消费者尝试从中取出时就会阻塞在take方法中，直到生产者插入一个元素。
 
-### 11) 执行器
+	### 11) 执行器
 
-​       创建一个新线程涉及和操作系统的交互，因此会产生一定的开销。在有些应用场景下，我们会在程序中创建大量生命周期很短的线程，这时我们应该使用线程池（thread pool)。通常，一个线程池中包含一些准备运行的空闲线程，每次将Runnable对象交给线程池，就会有一个线程执行run方法。当run方法执行完毕时，线程不会进入Terminated状态，而是在线程池中准备等下一个Runnable到来时提供服务。使用线程池统一管理线程可以减少并发线程的数目，线程数过多往往会在线程上下文切换上以及同步操作上浪费过多时间。
+	​       创建一个新线程涉及和操作系统的交互，因此会产生一定的开销。在有些应用场景下，我们会在程序中创建大量生命周期很短的线程，这时我们应该使用线程池（thread pool)。通常，一个线程池中包含一些准备运行的空闲线程，每次将Runnable对象交给线程池，就会有一个线程执行run方法。当run方法执行完毕时，线程不会进入Terminated状态，而是在线程池中准备等下一个Runnable到来时提供服务。使用线程池统一管理线程可以减少并发线程的数目，线程数过多往往会在线程上下文切换上以及同步操作上浪费过多时间。
 
-​       执行器类（java.util.concurrent.Executors)提供了许多静态工厂方法来构建线程池。
+	​       执行器类（java.util.concurrent.Executors)提供了许多静态工厂方法来构建线程池。
 
-**（1）线程池**
+	**（1）线程池**
 
-​       在Java中，线程池通常指一个ThreadPoolExecutor对象，ThreadPoolExecutor类继承了AbstractExecutorService类，而AbstractExecutorService抽象类实现了ExecutorService接口，ExecutorService接口又扩展了Executor接口。也就是说，Executor接口是Java中实现线程池的最基本接口。我们在使用线程池时通常不直接调用ThreadPoolExecutor类的构造方法，而是用Executors类提供给我们的静态工厂方法，这些静态工厂方法内部会调用ThreadPoolExecutor的构造方法，并为我们准备好相应的构造参数。
+	​       在Java中，线程池通常指一个ThreadPoolExecutor对象，ThreadPoolExecutor类继承了AbstractExecutorService类，而AbstractExecutorService抽象类实现了ExecutorService接口，ExecutorService接口又扩展了Executor接口。也就是说，Executor接口是Java中实现线程池的最基本接口。我们在使用线程池时通常不直接调用ThreadPoolExecutor类的构造方法，而是用Executors类提供给我们的静态工厂方法，这些静态工厂方法内部会调用ThreadPoolExecutor的构造方法，并为我们准备好相应的构造参数。
 
-​       Executor是类中的以下三个方法会返回一个实现了ExecutorService接口的ThreadPoolExecutor类的对象：
+	​       Executor是类中的以下三个方法会返回一个实现了ExecutorService接口的ThreadPoolExecutor类的对象：
 
-```java
-ExecutorService newCachedThreadPool() //返回一个带缓存的线程池，该池在必要的时候创建线程，在线程空闲60s后终止线程
-ExecutorService newFixedThreadPool(int threads) //返回一个线程池，线程数目由threads参数指明
-ExecutorService newSingleThreadExecutor() //返回只含一个线程的线程池，它在一个单一的线程中依次执行各个任务
-```
+	```java
+	ExecutorService newCachedThreadPool() //返回一个带缓存的线程池，该池在必要的时候创建线程，在线程空闲60s后终止线程
+	ExecutorService newFixedThreadPool(int threads) //返回一个线程池，线程数目由threads参数指明
+	ExecutorService newSingleThreadExecutor() //返回只含一个线程的线程池，它在一个单一的线程中依次执行各个任务
+	```
 
-- 对于newCachedThreadPool方法返回的线程池：对每个任务，若有空闲线程可用，则立即让它执行任务；若没有可用的空闲线程，它就会创建一个新线程并加入线程池中；
-- newFixedThreadPool方法返回的线程池里的线程数目由创建时指定，并一直保持不变。若提交给它的任务多于线程池中的空闲线程数目，那么就会把任务放到队列中，当其他任务执行完毕后再来执行它们；
-- newSingleThreadExecutor会返回一个大小为1的线程池，由一个线程执行提交的任务。
+	- 对于newCachedThreadPool方法返回的线程池：对每个任务，若有空闲线程可用，则立即让它执行任务；若没有可用的空闲线程，它就会创建一个新线程并加入线程池中；
 
-   以下方法可将一个Runnable对象或Callable对象提交给线程池：
+	- newFixedThreadPool方法返回的线程池里的线程数目由创建时指定，并一直保持不变。若提交给它的任务多于线程池中的空闲线程数目，那么就会把任务放到队列中，当其他任务执行完毕后再来执行它们；
 
-```java
-Future<T> submit(Callable<T> task)
-Future<T> submit(Runnable task, T result)
-Future<?> submit(Runnable task)
-```
+	- newSingleThreadExecutor会返回一个大小为1的线程池，由一个线程执行提交的任务。
 
-​       调用submit方法会返回一个Future对象，可通过这个对象查询该任务的状态。我们可以在这个Future对象上调用isDone、cancle、isCanceled等方法（Future接口会在下面进行介绍）。第一个submit方法提交一个Callable对象到线程池中；第二个方法提交一个Runnable对象，并且Future的get方法在完成的时候返回指定的result对象。
+		以下方法可将一个Runnable对象或Callable对象提交给线程池：
 
-​       当我们使用完线程池时，就调用shutdown方法，该方法会启动该线程池的关闭例程。被关闭的线程池不能再接受新的任务，当关闭前已存在的任务执行完毕后，线程池死亡。shutdownNow方法可以取消线程池中尚未开始的任务并尝试中断所有线程池中正在运行的线程。
+	```java
+	Future<T> submit(Callable<T> task)
+	Future<T> submit(Runnable task, T result)
+	Future<?> submit(Runnable task)
+	```
 
-​    在使用线程池时，我们通常应该按照以下步骤来进行：
+	​       调用submit方法会返回一个Future对象，可通过这个对象查询该任务的状态。我们可以在这个Future对象上调用isDone、cancle、isCanceled等方法（Future接口会在下面进行介绍）。第一个submit方法提交一个Callable对象到线程池中；第二个方法提交一个Runnable对象，并且Future的get方法在完成的时候返回指定的result对象。
 
-- 调用Executors中相关方法构建一个线程池；
-- 调用submit方法提交一个Runnable对象或Callable对象到线程池中；
-- 若想要取消一个任务，需要保存submit返回的Future对象；
-- 当不再提交任何任务时，调用shutdown方法。
+	​       当我们使用完线程池时，就调用shutdown方法，该方法会启动该线程池的关闭例程。被关闭的线程池不能再接受新的任务，当关闭前已存在的任务执行完毕后，线程池死亡。shutdownNow方法可以取消线程池中尚未开始的任务并尝试中断所有线程池中正在运行的线程。
 
-​    关于线程池更加深入及详细的分析，大家可以参考这篇博文：<http://www.cnblogs.com/dolphin0520/p/3932921.html>
+	​    在使用线程池时，我们通常应该按照以下步骤来进行：
 
-#### （2）预定执行
+	- 调用Executors中相关方法构建一个线程池；
+	- 调用submit方法提交一个Runnable对象或Callable对象到线程池中；
+	- 若想要取消一个任务，需要保存submit返回的Future对象；
+	- 当不再提交任何任务时，调用shutdown方法。
+
+	​    关于线程池更加深入及详细的分析，大家可以参考这篇博文：<http://www.cnblogs.com/dolphin0520/p/3932921.html>
+
+#### 2）预定执行
 
 ​         ScheduledExecutorService接口含有为**预定执行（Scheduled Execution）或重复执行**的任务专门设计的方法。Executors类的newScheduledThreadPool和newSingleThreadScheduledExecutor方法会返回实现了ScheduledExecutorService接口的对象。可以使用以下方法来预定执行的任务：
 
@@ -1151,7 +717,7 @@ public interface Future<V> {
 - cancel方法用来取消任务，如果取消任务成功则返回true，如果取消任务失败则返回false。参数`mayInterruptIfRunning` 表示是否允许取消正在执行却没有执行完毕的任务，如果设置true，则表示可以取消正在执行过程中的任务。如果任务已经完成，则无论 `mayInterruptIfRunning` 为true还是false，此方法肯定返回false（即如果取消已经完成的任务会返回false）；如果任务正在执行，若 `mayInterruptIfRunning`设置为true，则返回true，若mayInterruptIfRunning设置为false，则返回false；如果任务还没有执行，则无论mayInterruptIfRunning为true还是false，肯定返回true。
 - isCancelled方法表示任务是否被取消成功，如果在任务正常完成前被取消成功，则返回 true。
 - isDone方法表示任务是否已经完成，若任务完成，则返回true；
-- get()方法用来获取执行结果，这个方法会阻塞，一直等到任务执行完才返回；
+- get()方法用来获取执行结果，这个方法会阻塞,一直等到任务执行完才返回；
 - get(long timeout, TimeUnit unit)用来获取执行结果，如果在指定时间内，还没获取到结果，就直接返回null。
 
 　　也就是说**Future提供了三种功能**：
@@ -1176,7 +742,7 @@ public interface RunnableFuture<V> extends Runnable, Future<V> {
 
 ​    可以看到RunnableFuture接口扩展了Runnable接口和Future接口。
 
-​    FutureTask类有如下两个构造器：
+ FutureTask类有如下两个构造器：
 
 ```java
 public FutureTask(Callable<V> callable) 
@@ -1213,6 +779,7 @@ public FutureTask(Runnable runnable, V result)
 
 - `ConcurrentHashMap`，这个并发容器是为了取代同步的HashMap；
 - `CopyOnWriteArrayList`，使用这个类在迭代时进行修改不抛异常；
+
 - `ConcurrentLinkedQuerue `是一个非阻塞队列；
 - `ConcurrentSkipListMap `用于在并发环境下替代SortedMap；
 - `ConcurrentSkipSetMap `用于在并发环境下替代SortedSet。
@@ -1227,22 +794,24 @@ public FutureTask(Runnable runnable, V result)
 
 - CountDownLatch：允许线程集等待直到计数器减为0。适用场景：当一个或多个线程需要等待直到指定数目的事件发生。举例来说，假如主线程需要等待N个子线程执行完毕才继续执行，就可以使用CountDownLatch来实现，需要用到CountDownLatch的以下方法：
 
-  ```java
-  //调用该方法的线程会进入阻塞状态，直到count值为0才继续执行
-  public void await() throws InterruptedException { };   
-  //await方法的计时等待版本
-  public boolean await(long timeout, TimeUnit unit) throws InterruptedException { };  
-  //将CountDownLatch对象count值（初始化时作为参数传入构造方法）减1
-   public void countDown() { };  
-  ```
+	```java
+	//调用该方法的线程会进入阻塞状态，直到count值为0才继续执行
+	public void await() throws InterruptedException { };   
+	//await方法的计时等待版本
+	public boolean await(long timeout, TimeUnit unit) throws InterruptedException { };  
+	//将CountDownLatch对象count值（初始化时作为参数传入构造方法）减1
+	 public void countDown() { };  
+	```
 
 - Exchanger：允许两个线程在要交换的对象准备好时交换对象。适用场景：当两个线程工作在统一数据结构的两个实例上时，一个向实例中添加数据，另一个从实例中移除数据。
+
 - Semaphore：允许线程集等待直到被允许继续运行为止。适用场景：限制同一时刻对某一资源并发访问的线程数，初始化Semaphore需要指定许可的数目，线程要访问受限资源时需要获取一个许可，当所有许可都被获取，其他线程就只有等待许可被释放后才能获取。
+
 - SynchronousQueue：允许一个线程把对象交给另一个线程。适用场景：在没有显式同步的情况下，当两个线程准备好将一个对象从一个线程传递到另一个线程。
 
-​      关于CountDownLatch、CyclicBarrier、Semaphore的具体介绍和使用示例大家可以参考这篇博文：[Java并发编程：CountDownLatch、CyclicBarrier和Semaphore](http://www.cnblogs.com/dolphin0520/category/602384.html)。
+	​	关于CountDownLatch、CyclicBarrier、Semaphore的具体介绍和使用示例大家可以参考这篇博文：[Java并发编程：CountDownLatch、CyclicBarrier和Semaphore](http://www.cnblogs.com/dolphin0520/category/602384.html)。
 
-## 8.volatile关键字
+## 3.volatile关键字
 
 ​        volatile这个关键字可能很多朋友都听说过，或许也都用过。在Java 5之前，它是一个备受争议的关键字，因为在程序中使用它往往会导致出人意料的结果。在Java 5之后，volatile关键字才得以重获生机。
 
@@ -1268,7 +837,7 @@ i = i + 1;
 
 　　比如同时有2个线程执行这段代码，假如初始时i的值为0，那么我们希望两个线程执行完之后i的值变为2。但是事实会是这样吗？
 
-　　可能存在下面一种情况：初始时，两个线程分别读取i的值存入各自所在的CPU的高速缓存当中，然后线程1进行加1操作，然后把i的最新值1写入到内存。此时线程2的高速缓存当中i的值还是0，进行加1操作之后，i的值为1，然后线程2把i的值写入内存。
+可能存在下面一种情况：初始时，两个线程分别读取i的值存入各自所在的CPU的高速缓存当中，然后线程1进行加1操作，然后把i的最新值1写入到内存。此时线程2的高速缓存当中i的值还是0，进行加1操作之后，i的值为1，然后线程2把i的值写入内存。
 
 　　最终结果i的值是1，而不是2。这就是著名的缓存一致性问题。通常称这种被多个线程访问的变量为共享变量。
 
@@ -1288,9 +857,9 @@ i = i + 1;
 
 　　所以就出现了缓存一致性协议。最出名的就是Intel 的MESI协议，MESI协议保证了每个缓存中使用的共享变量的副本是一致的。它核心的思想是：当CPU写数据时，如果发现操作的变量是共享变量，即在其他CPU中也存在该变量的副本，会发出信号通知其他CPU将该变量的缓存行置为无效状态，因此当其他CPU需要读取这个变量时，发现自己缓存中缓存该变量的缓存行是无效的，那么它就会从内存重新读取。
 
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/volatile关键字多线程.png)
+![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/volatile%E5%85%B3%E9%94%AE%E5%AD%97%E5%A4%9A%E7%BA%BF%E7%A8%8B.png)
 
-### （2）并发编程中的三个概念
+### 2）并发编程中的三个概念
 
 　　在并发编程中，我们通常会遇到以下三个问题：**原子性问题，可见性问题，有序性问题**。我们先看具体看一下这三个概念：
 
@@ -1353,7 +922,7 @@ flag = true;
 
  　　上面代码定义了一个int型变量，定义了一个boolean类型变量，然后分别对两个变量进行赋值操作。从代码顺序上看，语句1是在语句2前面的，那么JVM在真正执行这段代码的时候会保证语句1一定会在语句2前面执行吗？不一定，为什么呢？这里可能会发生指令重排序（Instruction Reorder）。
 
-　　下面解释一下什么是指令重排序，一般来说，处理器为了提高程序运行效率，可能会对输入代码进行优化，它不保证程序中各个语句的执行先后顺序同代码中的顺序一致，但是它会保证程序最终执行结果和代码顺序执行的结果是一致的。
+下面解释一下什么是指令重排序，一般来说，处理器为了提高程序运行效率，可能会对输入代码进行优化，它不保证程序中各个语句的执行先后顺序同代码中的顺序一致，但是它会保证程序最终执行结果和代码顺序执行的结果是一致的。
 
 　　比如上面的代码中，语句1和语句2谁先执行对最终的程序结果并没有影响，那么就有可能在执行过程中，语句2先执行而语句1后执行。
 
@@ -1393,13 +962,13 @@ while(!inited){
 doSomethingWithConfig(context)
 ```
 
- 　　上面代码中，由于语句1和语句2没有数据依赖性，因此可能会被重排序。假如发生了重排序，在线程1执行过程中先执行语句2，而此是线程2会以为初始化工作已经完成，那么就会跳出while循环，去执行doSomethingwithconfig(context)方法，而此时context并没有被初始化，就会导致程序出错。
+上面代码中，由于语句1和语句2没有数据依赖性，因此可能会被重排序。假如发生了重排序，在线程1执行过程中先执行语句2，而此是线程2会以为初始化工作已经完成，那么就会跳出while循环，去执行doSomethingwithconfig(context)方法，而此时context并没有被初始化，就会导致程序出错。
 
  　　从上面可以看出，指令重排序不会影响单个线程的执行，但是会影响到线程并发执行的正确性。
 
 　　也就是说，要想并发程序正确地执行，必须要保证原子性、可见性以及有序性。只要有一个没有被保证，就有可能会导致程序运行不正确。
 
-###       (3)  Java内存模型
+### (3)  Java内存模型
 
 　　在前面谈到了一些关于内存模型以及并发编程中可能会出现的一些问题。下面我们来看一下Java内存模型，研究一下Java内存模型为我们提供了哪些保证以及在java中提供了哪些方法和机制来让我们在进行多线程编程时能够保证程序执行的正确性。
 
@@ -1479,6 +1048,7 @@ x =x+1；
 - 线程启动规则：Thread对象的start()方法先行发生于此线程的每个一个动作
 - 线程中断规则：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生
 - 线程终结规则：线程中所有的操作都先行发生于线程的终止检测，我们可以通过Thread.join()方法结束、Thread.isAlive()的返回值手段检测到线程已经终止执行
+
 - 对象终结规则：一个对象的初始化完成先行发生于他的finalize()方法的开始
 
 　　这8条原则摘自《深入理解Java虚拟机》。
@@ -1507,7 +1077,7 @@ x =x+1；
 
 　　2）禁止进行指令重排序。
 
-　　先看一段代码，假如线程1先执行，线程2后执行：
+​	      先看一段代码，假如线程1先执行，线程2后执行：
 
 ```java
 //线程1
@@ -1533,7 +1103,7 @@ stop = true;
 
 　　第三：由于线程1的工作内存中缓存变量stop的缓存行无效，所以线程1再次读取变量stop的值时会去主存读取。
 
-　　那么在线程2修改stop值时（当然这里包括2个操作，修改线程2工作内存中的值，然后将修改后的值写入内存），会使得线程1的工作内存中缓存变量stop的缓存行无效，然后线程1读取时，发现自己的缓存行无效，它会等待缓存行对应的主存地址被更新之后，然后去对应的主存读取最新的值。
+​	那么在线程2修改stop值时（当然这里包括2个操作，修改线程2工作内存中的值，然后将修改后的值写入内存），会使得线程1的工作内存中缓存变量stop的缓存行无效，然后线程1读取时，发现自己的缓存行无效，它会等待缓存行对应的主存地址被更新之后，然后去对应的主存读取最新的值。
 
 　　那么线程1读取到的就是最新的正确的值。
 
@@ -1573,7 +1143,7 @@ public class Test {
 
 　　可能有的朋友就会有疑问，不对啊，上面是对变量inc进行自增操作，由于volatile保证了可见性，那么在每个线程中对inc自增完之后，在其他线程中都能看到修改后的值啊，所以有10个线程分别进行了1000次操作，那么最终inc的值应该是1000*10=10000。
 
-　　这里面就有一个误区了，volatile关键字能保证可见性没有错，但是上面的程序错在没能保证原子性。可见性只能保证每次读取的是最新的值，但是volatile没办法保证对变量的操作的原子性。
+这里面就有一个误区了，volatile关键字能保证可见性没有错，但是上面的程序错在没能保证原子性。可见性只能保证每次读取的是最新的值，但是volatile没办法保证对变量的操作的原子性。
 
 　　在前面已经提到过，自增操作是不具备原子性的，它包括读取变量的原始值、进行加1操作、写入工作内存。那么就是说自增操作的三个子操作可能会分割开执行，就有可能导致下面这种情况出现：
 
@@ -1593,7 +1163,7 @@ public class Test {
 
 　　把上面的代码改成以下任何一种都可以达到效果：
 
-　　采用synchronized：
+采用synchronized：
 
 ```java
 public class Test {
@@ -1655,7 +1225,7 @@ public class Test {
 }
 ```
 
-　采用AtomicInteger：
+采用AtomicInteger：
 
 ```java
 public class Test {
@@ -1716,7 +1286,7 @@ y = -1;
 
 　　并且volatile关键字能保证，执行到语句3时，语句1和语句2必定是执行完毕了的，且语句1和语句2的执行结果对语句3、语句4、语句5是可见的。
 
-　　那么我们回到前面举的一个例子：
+那么我们回到前面举的一个例子：
 
 ```java
 //线程1:
@@ -1751,7 +1321,7 @@ doSomethingwithconfig(context);
 
 　　3）如果是写操作，它会导致其他CPU中对应的缓存行无效。
 
-### （5）使用volatile关键字的场景
+### 5）使用volatile关键字的场景
 
 　　synchronized关键字是防止多个线程同时执行一段代码，那么就会很影响程序执行效率，而volatile关键字在某些情况下性能要优于synchronized，但是要注意volatile关键字是无法替代synchronized关键字的，因为volatile关键字无法保证操作的原子性。通常来说，使用volatile必须具备以下2个条件：
 
@@ -1791,8 +1361,6 @@ while(!inited ){
 doSomethingwithconfig(context);`
 ```
 
- 
-
 **2.double check**
 
 ```java
@@ -1811,7 +1379,7 @@ class Singleton{
 }
 ```
 
-## 9.Java线程池
+## 4.Java线程池
 
 ​        在前面的文章中，我们使用线程的时候就去创建一个线程，这样实现起来非常简便，但是就会有一个问题：
 
@@ -1849,7 +1417,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 }
 ```
 
- 　　从上面的代码可以得知，ThreadPoolExecutor继承了AbstractExecutorService类，并提供了四个构造器，事实上，通过观察每个构造器的源码具体实现，发现前面三个构造器都是调用的第四个构造器进行的初始化工作。
+从上面的代码可以得知，ThreadPoolExecutor继承了AbstractExecutorService类，并提供了四个构造器，事实上，通过观察每个构造器的源码具体实现，发现前面三个构造器都是调用的第四个构造器进行的初始化工作。
 
  　　下面解释下一下构造器中各个参数的含义：
 
@@ -1922,7 +1490,7 @@ public abstract class AbstractExecutorService implements ExecutorService {
 }
 ```
 
- 　　AbstractExecutorService是一个抽象类，它实现了ExecutorService接口。
+AbstractExecutorService是一个抽象类，它实现了ExecutorService接口。
 
 　　我们接着看ExecutorService接口的定义：
 
@@ -1959,7 +1527,7 @@ public interface Executor {
 }
 ```
 
- 　　到这里，大家应该明白了ThreadPoolExecutor、AbstractExecutorService、ExecutorService和Executor几个之间的关系了。
+到这里，大家应该明白了ThreadPoolExecutor、AbstractExecutorService、ExecutorService和Executor几个之间的关系了。
 
 　　Executor是一个顶层接口，在它里面只声明了一个方法execute(Runnable)，返回值为void，参数为Runnable类型，从字面意思可以理解，就是用来执行传进去的任务的；
 
@@ -2057,7 +1625,7 @@ private long completedTaskCount;
 
 　　当10个工人都有任务在做时，如果还来了任务，就把任务进行排队等待；
 
-　　如果说新任务数目增长的速度远远大于工人做任务的速度，那么此时工厂主管可能会想补救措施，比如重新招4个临时工人进来；
+如果说新任务数目增长的速度远远大于工人做任务的速度，那么此时工厂主管可能会想补救措施，比如重新招4个临时工人进来；
 
 　　然后就将任务也分配给这4个临时工人做；
 
@@ -2092,7 +1660,7 @@ public void execute(Runnable command) {
 }
 ```
 
- 　　上面的代码可能看起来不是那么容易理解，下面我们一句一句解释：
+上面的代码可能看起来不是那么容易理解，下面我们一句一句解释：
 
 　　首先，判断提交的任务command是否为null，若是null，则抛出空指针异常；
 
@@ -2138,7 +1706,7 @@ if (runState == RUNNING && workQueue.offer(command))
 if (runState != RUNNING || poolSize == 0) 
 ```
 
- 　　这句判断是为了防止在将此任务添加进任务缓存队列的同时其他线程突然调用shutdown或者shutdownNow方法关闭了线程池的一种应急措施。如果是这样就执行：
+这句判断是为了防止在将此任务添加进任务缓存队列的同时其他线程突然调用shutdown或者shutdownNow方法关闭了线程池的一种应急措施。如果是这样就执行：
 
 ```java
 ensureQueuedTaskHandled(command)
@@ -2172,7 +1740,7 @@ private boolean addIfUnderCorePoolSize(Runnable firstTask) {
 t = addThread(firstTask);
 ```
 
- 　　这个方法也非常关键，传进去的参数为提交的任务，返回值为Thread类型。然后接着在下面判断t是否为空，为空则表明创建线程失败（即poolSize>=corePoolSize或者runState不等于RUNNING），否则调用t.start()方法启动线程。
+这个方法也非常关键，传进去的参数为提交的任务，返回值为Thread类型。然后接着在下面判断t是否为空，为空则表明创建线程失败（即poolSize>=corePoolSize或者runState不等于RUNNING），否则调用t.start()方法启动线程。
 
 　　我们来看一下addThread方法的实现：
 
@@ -2262,7 +1830,7 @@ private final class Worker implements Runnable {
 
 ```
 
- 　　它实际上实现了Runnable接口，因此上面的Thread t = threadFactory.newThread(w);效果跟下面这句的效果基本一样：
+它实际上实现了Runnable接口，因此上面的Thread t = threadFactory.newThread(w);效果跟下面这句的效果基本一样：
 
 ```java
 Thread t = new Thread(w);
@@ -2321,7 +1889,7 @@ Runnable getTask() {
 }
 ```
 
- 　　在getTask中，先判断当前线程池状态，如果runState大于SHUTDOWN（即为STOP或者TERMINATED），则直接返回null。
+在getTask中，先判断当前线程池状态，如果runState大于SHUTDOWN（即为STOP或者TERMINATED），则直接返回null。
 
 　　如果runState为SHUTDOWN或者RUNNING，则从任务缓存队列取任务。
 
@@ -2363,7 +1931,7 @@ void interruptIdleWorkers() {
 }
 ```
 
- 　　从实现可以看出，它实际上调用的是worker的interruptIfIdle()方法，在worker的interruptIfIdle()方法中：
+从实现可以看出，它实际上调用的是worker的interruptIfIdle()方法，在worker的interruptIfIdle()方法中：
 
 ```java
 void interruptIfIdle() {
@@ -2402,7 +1970,7 @@ private boolean addIfUnderMaximumPoolSize(Runnable firstTask) {
 }
 ```
 
- 　　看到没有，其实它和addIfUnderCorePoolSize方法的实现基本一模一样，只是if语句判断条件中的poolSize < maximumPoolSize不同而已。
+看到没有，其实它和addIfUnderCorePoolSize方法的实现基本一模一样，只是if语句判断条件中的poolSize < maximumPoolSize不同而已。
 
 　　到这里，大部分朋友应该对任务提交给线程池之后到被执行的整个过程有了一个基本的了解，下面总结一下：
 
@@ -2441,7 +2009,7 @@ public int prestartAllCoreThreads() {
 }
 ```
 
- 　　注意上面传进去的参数是null，根据第2小节的分析可知如果传进去的参数为null，则最后执行线程会阻塞在getTask方法中的
+注意上面传进去的参数是null，根据第2小节的分析可知如果传进去的参数为null，则最后执行线程会阻塞在getTask方法中的
 
 ```java
 r = workQueue.take();
@@ -2488,7 +2056,7 @@ ThreadPoolExecutor.CallerRunsPolicy：//由调用线程处理该任务
 
 　　当上述参数从小变大时，ThreadPoolExecutor进行线程赋值，还可能立即创建新的线程来执行任务。
 
-###   (3)  使用示例
+### (3)  使用示例
 
 　　前面我们讨论了关于线程池的实现原理，这一节我们来看一下它的具体使用：
 
@@ -2529,7 +2097,7 @@ class MyTask implements Runnable {
 }
 ```
 
- 　　执行结果：
+执行结果：
 
 ```
 正在执行task 0
@@ -2579,7 +2147,7 @@ task 6执行完毕
 task 9执行完毕
 ```
 
-　　从执行结果可以看出，当线程池中线程的数目大于5时，便将任务放入任务缓存队列里面，当任务缓存队列满了之后，便创建新的线程。如果上面程序中，将for循环中改成执行20个任务，就会抛出任务拒绝异常了。
+从执行结果可以看出，当线程池中线程的数目大于5时，便将任务放入任务缓存队列里面，当任务缓存队列满了之后，便创建新的线程。如果上面程序中，将for循环中改成执行20个任务，就会抛出任务拒绝异常了。
 
 　　不过在java doc中，并不提倡我们直接使用ThreadPoolExecutor，而是使用Executors类中提供的几个静态方法来创建线程池：
 
@@ -2616,13 +2184,13 @@ public static ExecutorService newCachedThreadPool() {
 
 　　newSingleThreadExecutor将corePoolSize和maximumPoolSize都设置为1，也使用的LinkedBlockingQueue；
 
-　　newCachedThreadPool将corePoolSize设置为0，将maximumPoolSize设置为Integer.MAX_VALUE，使用的SynchronousQueue，也就是说来了任务就创建线程运行，当线程空闲超过60秒，就销毁线程。
+newCachedThreadPool将corePoolSize设置为0，将maximumPoolSize设置为Integer.MAX_VALUE，使用的SynchronousQueue，也就是说来了任务就创建线程运行，当线程空闲超过60秒，就销毁线程。
 
 　　实际中，如果Executors提供的三个静态方法能满足要求，就尽量使用它提供的三个方法，因为自己去手动配置ThreadPoolExecutor的参数有点麻烦，要根据实际任务的类型和数量来进行配置。
 
 　　另外，如果ThreadPoolExecutor达不到要求，可以自己继承ThreadPoolExecutor类进行重写。
 
-###   (4)  如何合理配置线程池的大小
+### (4)  如何合理配置线程池的大小
 
 　　一般需要根据任务的类型来配置线程池大小：
 
@@ -2632,7 +2200,9 @@ public static ExecutorService newCachedThreadPool() {
 
 　　当然，这只是一个参考值，具体的设置还需要根据实际情况进行调整，比如可以先将线程池大小设置为参考值，再观察任务运行情况和系统负载、资源利用率来进行适当调整。
 
-## 10.单例模式
+
+
+## 5.单例模式
 
 ### （1）单例模式定义：
 
@@ -2664,7 +2234,7 @@ public static ExecutorService newCachedThreadPool() {
 
 ### （5）实现单例模式的方式
 
-####         1.饿汉式单例（立即加载方式）
+#### 1.饿汉式单例（立即加载方式）
 
 ```java
 // 饿汉式单例
@@ -2689,7 +2259,7 @@ public class Singleton1 {
 缺点：类加载时就初始化，浪费内存。
 ​        它基于 classloader 机制避免了多线程的同步问题，不过，instance 在类装载时就实例化，虽然导致类装载的原因有很多种，在单例模式中大多数都是调用 getInstance 方法， 但是也不能确定有其他的方式（或者其他的静态方法）导致类装载，这时候初始化 instance 显然没有达到 lazy loading 的效果。
 
-####        2.懒汉式单例（延迟加载方式）
+#### 2.懒汉式单例（延迟加载方式）
 
 ```java
 // 懒汉式单例
@@ -2709,7 +2279,7 @@ public class Singleton2 {
 }
 ```
 
-​        这种方式是最基本的实现方式，这种实现最大的问题就是不支持多线程。因为没有加锁 synchronized，所以严格意义上它并不算单例模式。这种方式 lazy loading 很明显，不要求线程安全，在多线程不能正常工作。但在多线程环境下会产生多个single对象，如何改造请看以下方式:
+这种方式是最基本的实现方式，这种实现最大的问题就是不支持多线程。因为没有加锁 synchronized，所以严格意义上它并不算单例模式。这种方式 lazy loading 很明显，不要求线程安全，在多线程不能正常工作。但在多线程环境下会产生多个single对象，如何改造请看以下方式:
 
 使用synchronized同步锁
 
@@ -2761,7 +2331,7 @@ public class Singleton4 {
 }
 ```
 
-​         使用双重检查进一步做了优化，可以避免整个方法被锁，只对需要锁的代码部分加锁，可以提高执行效率。
+ 使用双重检查进一步做了优化，可以避免整个方法被锁，只对需要锁的代码部分加锁，可以提高执行效率。
 
 #### 3.静态内部类实现
 
@@ -2847,1869 +2417,3 @@ class Singleton8{
 缺点：
 
 ​        没有接口，不能继承，与单一职责原则冲突，一个类应该只关心内部逻辑，而不关心外面怎么样来实例化。
-
-## 11.service两种启动方式有什么区别？
-
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/service.png)
-
-### 1）start启动方式：
-
-**步骤：**
-
-​      1.定义一个类继承`Service`。
-
-​      2.在`Manifest.xml`文件中配置该`Service`。
-​      3.使用Context的`startService(Intent)`方法启动该Service。
-​      4.不再使用时，调用`stopService(Intent)`方法停止该服务。
-
-**生命周期：**
-
-```java
-onCreate()--->onStartCommand()（onStart()方法已过时） ---> onDestory()
-```
-
-**说明**：如果服务已经开启，不会重复的执行`onCreate()`， 而是会调用`onStart()`和`onStartCommand()`。
- 服务停止的时候调用 `onDestory()`。服务只会被停止一次。
-
-**特点**：一旦服务开启跟调用者(开启者)就没有任何关系了。开启者退出了，开启者挂了，服务还在后台长期的运行。开启者不能调用服务里面的方法。
-
-### 2）bind启动方式：
-
-**步骤：**
-
-​     1.定义一个类继承 `Service` 。
-​     2.在 `Manifest.xml` 文件中配置该 `Service`。
-​     3.使用Context的`bindService(Intent, ServiceConnection, int)`方法启动该Service。
-​     4.不再使用时，调用`unbindService(ServiceConnection)`方法停止该服务。
-
-**生命周期：**
-
-```java
-onCreate()` --->`onBind()`--->`onunbind()`--->`onDestory()
-```
-
-**注意**：绑定服务不会调用`onstart()`或者`onstartcommand()`方法
-
-**特点**：bind的方式开启服务，绑定服务，调用者挂了，服务也会跟着挂掉。
-绑定者可以调用服务里面的方法。
-
-**绑定者如何调用服务里的方法呢？**
-
-1.先定义一个service子类，并在功能清单中注册。
-
-```kotlin
-class MyService : Service() {
-
-	override fun onBind(intent: Intent): IBinder? {
-		return MyBinder()
-	}
-
-	override fun onCreate() {
-		super.onCreate()
-		Log.e("TAG", "onCreate()")
-	}
-
-	override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-		Log.e("TAG", "onStartCommand()")
-		return super.onStartCommand(intent, flags, startId)
-	}
-
-	override fun stopService(name: Intent?): Boolean {
-		Log.e("TAG", "stopService()")
-		return super.stopService(name)
-	}
-
-	override fun onDestroy() {
-		super.onDestroy()
-		Log.e("TAG", "onDestroy()")
-	}
-}
-
-
-    /**
-     * 该类用于在onBind方法执行后返回的对象，
-     * 该对象对外提供了该服务里的方法
-     */
-class MyBinder : Binder() {
-
-	fun testBindService() {
-		Log.e("TAG", "测试绑定服务")
-	}
-}
-```
-
-```kotlin
-class MainActivity : AppCompatActivity() {
-
-	override fun onCreate(savedInstanceState: Bundle?) {
-		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_main)
-		initAction()
-	}
-
-	lateinit var mIntent: Intent
-	private val serviceConnection: ServiceConnection = object : ServiceConnection {
-		override fun onServiceDisconnected(name: ComponentName?) {
-			Log.e("TAG", "onServiceDisconnected()")
-		}
-
-		override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-			val myBinder = service as MyBinder
-			myBinder.testBindService()
-			Log.e("TAG", "onServiceConnected()")
-		}
-
-	}
-
-	private fun initAction() {
-		btn_start.setOnClickListener {
-			mIntent = Intent()
-			mIntent.setClass(this@MainActivity, MyService::class.java)
-			startService(mIntent)
-		}
-		btn_stop.setOnClickListener {
-			stopService(mIntent)
-		}
-
-		btn_bind.setOnClickListener {
-			mIntent = Intent()
-			mIntent.setClass(this@MainActivity, MyService::class.java)
-			bindService(mIntent, serviceConnection, Context.BIND_AUTO_CREATE)
-		}
-
-		btn_unbind.setOnClickListener {
-           unbindService(serviceConnection)
-		}
-
-	}
-}
-```
-
-**绑定本地服务调用方法的步骤**：
-
-1. 在服务的内部创建一个内部类 提供一个方法，可以间接调用服务的方法
-2. 实现服务的onbind方法，返回的就是这个内部类
-3. 在activity 绑定服务。bindService();
-4. 在服务成功绑定的回调方法onServiceConnected， 会传递过来一个 IBinder对象
-5. 强制类型转化为自定义的接口类型，调用接口里面的方法。
-
-**区别:**
-
-startService启动Service ,Service有独立的生命周期，不依赖该组件；
-多次调用startService方法，会重复调用onStartCommand方法；
-必须通过stopService或者stopSelf来停止服务（IntentService会自动调用stopSelf方法）
-
-bindService启动Service，多次调用此方法，只会调用一次onBind方法；
-bindService,Service 依赖于此组件，该组件销毁后，Service也会随之销毁。
-
-**扩展：**
-1、同一个Service，先启动startService，然后在bindService，如何把服务停掉?
-
-​        无论被startService调用多少次，如需要stopService或者stopSelf方法 一次；
-调用n次bindService，必须调用一次unBindService方法；
-
-​        因此，需要调用一次stopService(或者stopSelf)方法，和一次unBindService方法，执行顺序没有要求，
-最后一个stopService或者unBindService方法会导致Service的 onDestory执行。
-
-2、Service的生命方法是运行在那个线程中？
-
-​        Service默认运行在主线程，所以其生命方法也是运行在主线程中，如果需要在Service中进行耗时操作，必须另起线程（或者使用IntentService）否则会引起ANR。
-
-## 12.说说图片三级缓存
-
-### 1）为什么要三级缓存？
-
-- 为用户节省流量，对相同资源减少多次重复的网络请求；
-- 部分业务需要。例如有些业务需要在用户断网时也可以进行一些浏览或操作；
-- 各缓存读取速度不相同，结合使用提高效率；
-
-### 2）什么事三级缓存？
-
-​        所谓三级缓存，指的是：内存缓存，本地缓存（或者叫文件缓存），网络缓存（我个人认为把网络算在缓存里其实是不太合适的）。
-
-1. 内存缓存：只有当APP运行时才会涉及到。内存虽然有容量限制，但是从内存读取信息是速度最快的。
-2. 本地缓存：信息以文件的形式存储在本地。只要不清除这些文件，那么信息就一直持久化的保存着。需要时可以通过流的方式进行读取。本地容量大，速度次于内存。
-3. 网络：信息存储在远端Server。通过网络获取信息。完全依赖网络情况，速度相对上面两者来说要慢。
-
-### 3）图片异步加载缓存方案的工作流程
-
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/三级缓存原理.png)
-
-### 5）设计三级缓存
-
-**（1）定义接口**
-
-```java
-public interface ImageCache {
-    Bitmap getBitmap(String url);
- 
-    void putBitmap(String url, Bitmap bitmap
-}
-```
-
-
- **（2）实现内存缓存**
-
-```java
-public class MemoryCache implements ImageCache {
-    private LruCache<String, Bitmap> mLruCache;
-    private static final int MAX_LRU_CACHE_SIZE = (int) (Runtime.getRuntime().maxMemory() / 8);
- 
-    public MemoryCache() {
-        //初始化LruCache
-        initLruCache();
-    }
- 
-    private void initLruCache() {
-          mLruCache = new LruCache<String, Bitmap>(MAX_LRU_CACHE_SIZE) {
-             @Override
-             protected int sizeOf(String key, Bitmap bitmap) {
-                  return bitmap.getRowBytes() * bitmap.getHeight();
-             }
-          };
-   }
- 
-    @Override
-    public Bitmap getBitmap(String url) {
-         return mLruCache.get(url);
-    }
- 
-    @Override
-    public void putBitmap(String url, Bitmap bitmap) {
-         mLruCache.put(url, bitmap);
-    }
-} 
-```
-
-（**3）实现本地缓存**
-
-​        DiskLruCache是Google自己写的一个类，用来做本地缓存方案十分方便。
-
-```java
-public class DiskCache implements ImageCache {
-	private DiskLruCache mDiskLruCache;
-	private static final String DISK_LRU_CACHE_UNIQUE = "Image";
-	private static final int MAX_DISK_LRU_CACHE_SIZE = 10 * 1024 * 1024;
-
-	ExecutorService mExecutorsService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-	public DiskCache(Context context) {
-		//初始化DiskLruCache
-		initDiskLruCache(context);
-	}
-
-	private void initDiskLruCache(Context context) {
-		try {
-			File cacheDir = getDiskCacheDir(context, DISK_LRU_CACHE_UNIQUE);
-			if ( ! cacheDir.exists() ) {
-				cacheDir.mkdirs();
-			}
-			mDiskLruCache = DiskLruCache.open(cacheDir, getAppVersion(context), 1, MAX_DISK_LRU_CACHE_SIZE);
-		} catch ( IOException e ) {
-			e.printStackTrace();
-		}
-	}
-
-	private File getDiskCacheDir(Context context, String uniqueName) {
-		String cachePath;
-		if ( Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()) || ! Environment.isExternalStorageRemovable() ) {
-			cachePath = context.getExternalCacheDir().getPath();
-		} else {
-			cachePath = context.getCacheDir().getPath();				   
-		}
-		return new File(cachePath + File.separator + uniqueName);
-	}
-
-	private int getAppVersion(Context context) {
-		try {
-			PackageInfo info = context.getPackageManager()
-									  .getPackageInfo(context.getPackageName(), 0);
-			return info.versionCode;
-		} catch ( PackageManager.NameNotFoundException e ) {
-			e.printStackTrace();
-		}
-		return 1;
-	}
-
-	@Override
-	public Bitmap getBitmap(String url) {
-		String bitmapUrlMD5 = Md5Util.getMD5String(url);
-		Bitmap bitmap = null;
-		DiskLruCache.Snapshot snapshot = null;
-		try {
-			snapshot = mDiskLruCache.get(bitmapUrlMD5);
-		} catch ( IOException e ) {
-			e.printStackTrace();
-		}
-		if ( snapshot != null ) {
-			InputStream inputStream = snapshot.getInputStream(0);
-			bitmap = BitmapFactory.decodeStream(inputStream);
-		}
-		return bitmap;
-	}
-
-	@Override
-	public void putBitmap(String url, final Bitmap bitmap) {
-		final String bitmapUrlMD5 = Md5Util.getMD5String(url);
-		mExecutorsService.submit(new Runnable() {
-			@Override
-			public void run() {
-				writeFileToDisk(mDiskLruCache, bitmap, bitmapUrlMD5);
-			}
-		});
-	}
-
-	private static void writeFileToDisk(DiskLruCache diskLruCache, Bitmap bitmap, String bitmapUrlMD5) {
-		DiskLruCache.Editor editor = null;
-		OutputStream outputStream = null;
-		try {
-			editor = diskLruCache.edit(bitmapUrlMD5);
-			if ( editor != null ) {
-				outputStream = editor.newOutputStream(0);
-				if ( bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream) ) {
-					editor.commit();
-				}
-			}
-		} catch ( Exception e ) {
-			try {
-				if ( editor != null ) {
-					editor.abort();
-				}
-			} catch ( Exception e1 ) {
-				e1.printStackTrace();
-			}
-			e.printStackTrace();
-		} finally {
-			try {
-				diskLruCache.flush();
-			} catch ( Exception e ) {
-
-			}
-		}
-	}
-```
-
-​        可以看到本地缓存的时候对url做了一次MD5加密。这是为了从安全考虑。毕竟直接把url暴露在文件上实在不太雅观。
-
-**（4）完成内存缓存加本地缓存的双缓存逻辑实现**
-
-对于图片的获取：先从内存缓存获取图片。如果不为空直接返回。如果为空，再从本地缓存获取图片。
-
-对于图片的保存：就是往内存缓存和本地缓存分别添加图片。
-
-```java
-public class MemoryAndDiskCache implements ImageCache {
-	private MemoryCache mMemoryCache;
-	private DiskCache mDiskCache;
-
-	public MemoryAndDiskCache(Context context) {
-		mMemoryCache = new MemoryCache();
-		mDiskCache = new DiskCache(context);
-	}
-
-	@Override
-	public Bitmap getBitmap(String url) {
-		Bitmap bitmap = mMemoryCache.getBitmap(url);
-		if (bitmap != null) {
-			return bitmap;
-		} else {
-			bitmap = mDiskCache.getBitmap(url);
-			return bitmap;
-		}
-	}
-
-	@Override
-	public void putBitmap(String url, Bitmap bitmap) {
-		mMemoryCache.putBitmap(url, bitmap);
-		mDiskCache.putBitmap(url, bitmap);
-	}
-}
-```
-
-
-  **（5）实现ImageLoader类**
-
-​        这个类中我们会在构造函数中传入ImageCache的实例。那么在获取和保存图片时，只需要调用接口中定义的两个方法即可，无需关注细节。实现细节完全交由构造函数中传入的ImageCache实例。当要获取图片时，先调用ImageCache接口实例的getBitmap方法，如果为空。那么需要我们从网络下载图片。下载完成后我们只要调用ImageCache接口示例的putBitmap方法，即可完成整个图片缓存方案。
-
-```java
-public class ImageLoader {
-	private ImageCache mImageCache;
-
-	public ImageLoader(ImageCache imageCache) {
-		mImageCache = imageCache;
-	}
-
-	public void displayImage(String url, ImageView imageView, int defaultImageRes) {
-		imageView.setImageResource(defaultImageRes);
-		imageView.setTag(url);
-
-		Bitmap bitmap = mImageCache.getBitmap(url);
-		if (bitmap != null) {
-			imageView.setImageBitmap(bitmap);
-		} else {
-			downloadImage(imageView, url);
-		}
-	}
-
-	private void downloadImage(final ImageView imageView, final String url) {
-		Call<ResponseBody> resultCall = ServiceFactory.getServices().downloadImage(url);
-		resultCall.enqueue(new Callback<ResponseBody>() {
-			@Override
-			public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-				if (response != null && response.body() != null) {
-					InputStream inputStream = response.body().byteStream();
-					Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-					if ( TextUtils.equals((String) imageView.getTag(), url)) {
-						imageView.setImageBitmap(bitmap);
-					}
-					mImageCache.putBitmap(url, bitmap);
-				}
-			}
-
-			@Override
-			public void onFailure(Call<ResponseBody> call, Throwable t) {
-			}
-		});
-	}
-}
-```
-
-### 6）LruCache 源码解析
-
-#### 1. 简介
-
-> LRU 是 Least Recently Used 最近最少使用算法。
-
->曾经，在各大缓存图片的框架没流行的时候。有一种很常用的内存缓存技术：SoftReference 和 WeakReference（软引用和弱引用）。但是走到了 Android 2.3（Level 9）时代，垃圾回收机制更倾向于回收 SoftReference 或 WeakReference 的对象。后来，又来到了 Android3.0，图片缓存在内容中，因为不知道要在是什么时候释放内存，没有策略，没用一种可以预见的场合去将其释放。这就造成了内存溢出。
-
-
-#### 2. 使用方法
-
-**当成一个 Map 用就可以了，只不过实现了 LRU 缓存策略**。
-
-使用的时候记住几点即可：
-- **1.（必填）**你需要提供一个缓存容量作为构造参数。
-- **2.（必填）**  覆写  `sizeOf` 方法 ，自定义设计一条数据放进来的容量计算，如果不覆写就无法预知数据的容量，不能保证缓存容量限定在最大容量以内。
-- **3.（选填）** 覆写 `entryRemoved` 方法 ，你可以知道最少使用的缓存被清除时的数据（ evicted, key, oldValue, newVaule ）。
-- **4.（记住）**LruCache是线程安全的，在内部的 get、put、remove 包括 trimToSize 都是安全的（因为都上锁了）。
-- **5.（选填）** 还有就是覆写 `create` 方法 。
-
-一般做到 **1、2、3、4就足够了，5可以无视** 。
-
-
-以下是 一个 **LruCache 实现 Bitmap 小缓存的案例**, `entryRemoved` 里的自定义逻辑可以无视，想看的可以去到我的我的展示 [demo](https://github.com/CaMnter/AndroidLife/blob/master/app/src/main/java/com/camnter/newlife/views/activity/lrucache/LruCacheActivity.java) 里的看自定义 `entryRemoved` 逻辑。
-```java
-private static final float ONE_MIB = 1024 * 1024;
-// 7MB
-private static final int CACHE_SIZE = (int) (7 * ONE_MIB);
-private LruCache<String, Bitmap> bitmapCache;
-this.bitmapCache = new LruCache<String, Bitmap>(CACHE_SIZE) {
-    protected int sizeOf(String key, Bitmap value) {
-        return value.getByteCount();
-    }
-
-    @Override
-    protected void entryRemoved(boolean evicted, String key, Bitmap oldValue, Bitmap newValue) {
-        ...
-    }
-};
-```
-
-#### 3. 效果展示
-
-[LruCache 效果展示](https://github.com/CaMnter/AndroidLife/blob/master/article/LruCache%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90_%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA.md)  
-
-
-#### 4. 源码分析
-
-##### 4.1 LruCache 原理概要解析
-
-LruCache 就是 **利用 LinkedHashMap 的一个特性（ accessOrder＝true 基于访问顺序 ）再加上对 LinkedHashMap 的数据操作上锁实现的缓存策略**。
-
-**LruCache 的数据缓存是内存中的**。  
-
-- 1.首先设置了内部 `LinkedHashMap` 构造参数 `accessOrder=true`， 实现了数据排序按照访问顺序。
-
-- 2.然后在每次 `LruCache.get(K key)` 方法里都会调用 `LinkedHashMap.get(Object key)`。
-
-- 3.如上述设置了 `accessOrder=true` 后，每次 `LinkedHashMap.get(Object key)` 都会进行 `LinkedHashMap.makeTail(LinkedEntry<K, V> e)`。
-
-- 4.`LinkedHashMap` 是双向循环链表，然后每次 `LruCache.get` -> `LinkedHashMap.get` 的数据就被放到最末尾了。
-
-- 5.在 `put` 和 `trimToSize` 的方法执行下，如果发生数据量移除，会优先移除掉最前面的数据（因为最新访问的数据在尾部）。
-
-**具体解析在：** *4.2*、*4.3*、*4.4*、*4.5* 。
-
-
-##### 4.2 LruCache 的唯一构造方法
-```java
-/**
- * LruCache的构造方法：需要传入最大缓存个数
- */
-public LruCache(int maxSize) {
-
-    ...
-
-    this.maxSize = maxSize;
-    /*
-     * 初始化LinkedHashMap
-     * 第一个参数：initialCapacity，初始大小
-     * 第二个参数：loadFactor，负载因子=0.75f
-     * 第三个参数：accessOrder=true，基于访问顺序；accessOrder=false，基于插入顺序
-     */
-    this.map = new LinkedHashMap<K, V>(0, 0.75f, true);
-}
-```
-第一个参数 `initialCapacity` 用于初始化该 LinkedHashMap 的大小。
-
-先简单介绍一下 第二个参数 `loadFactor`，这个其实的 HashMap 里的构造参数，涉及到**扩容问题**，比如  HashMap 的最大容量是100，那么这里设置0.75f的话，到75容量的时候就会扩容。
-
-主要是第三个参数 `accessOrder=true` ，**这样的话 LinkedHashMap 数据排序就会基于数据的访问顺序，从而实现了 LruCache 核心工作原理**。
-
-##### 4.3 LruCache.get(K key)  
-```java
-/**
- * 根据 key 查询缓存，如果存在于缓存或者被 create 方法创建了。
- * 如果值返回了，那么它将被移动到双向循环链表的的尾部。
- * 如果如果没有缓存的值，则返回 null。
- */
-public final V get(K key) {
-
-    ...  
-
-    V mapValue;
-    synchronized (this) {
-        // 关键点：LinkedHashMap每次get都会基于访问顺序来重整数据顺序
-        mapValue = map.get(key);
-        // 计算 命中次数
-        if (mapValue != null) {
-            hitCount++;
-            return mapValue;
-        }
-        // 计算 丢失次数
-        missCount++;
-    }
-
-    /*
-     * 官方解释：
-     * 尝试创建一个值，这可能需要很长时间，并且Map可能在create()返回的值时有所不同。如果在create()执行的时候，一个冲突的值被添加到Map，我们在Map中删除这个值，释放被创造的值。
-     * 
-     */
-    V createdValue = create(key);
-    if (createdValue == null) {
-        return null;
-    }
-
-    /***************************
-     * 不覆写create方法走不到下面 *
-     ***************************/
-
-    /*
-     * 正常情况走不到这里
-     * 走到这里的话 说明 实现了自定义的 create(K key) 逻辑
-     * 因为默认的 create(K key) 逻辑为null
-     */
-    synchronized (this) {
-        // 记录 create 的次数
-        createCount++;
-        // 将自定义create创建的值，放入LinkedHashMap中，如果key已经存在，会返回 之前相同key 的值
-        mapValue = map.put(key, createdValue);
-
-        // 如果之前存在相同key的value，即有冲突。
-        if (mapValue != null) {
-            /*
-             * 有冲突
-             * 所以 撤销 刚才的 操作
-             * 将 之前相同key 的值 重新放回去
-             */
-            map.put(key, mapValue);
-        } else {
-            // 拿到键值对，计算出在容量中的相对长度，然后加上
-            size += safeSizeOf(key, createdValue);
-        }
-    }
-
-    // 如果上面 判断出了 将要放入的值发生冲突
-    if (mapValue != null) {
-        /*
-         * 刚才create的值被删除了，原来的之前相同key 的值被重新添加回去了
-         * 告诉自定义的entryRemoved 方法
-         */
-        entryRemoved(false, key, createdValue, mapValue);
-        return mapValue;
-    } else {
-        // 上面 进行了 size += 操作 所以这里要重整长度
-        trimToSize(maxSize);
-        return createdValue;
-    }
-}
-```
-上述的 `get` 方法表面并没有看出哪里有实现了 LRU 的缓存策略。主要在 `mapValue = map.get(key)`;里，**调用了 LinkedHashMap 的 get 方法，再加上 LruCache 构造里默认设置 LinkedHashMap 的 accessOrder=true**。
-
-
-##### 4.4 LinkedHashMap.get(Object key)
-```java
-/**
- * Returns the value of the mapping with the specified key.
- *
- * @param key
- *            the key.
- * @return the value of the mapping with the specified key, or {@code null}
- *         if no mapping for the specified key is found.
- */
-@Override public V get(Object key) {
-    /*
-     * This method is overridden to eliminate the need for a polymorphic
-     * invocation in superclass at the expense of code duplication.
-     */
-    //jdk1.7
-    if (key == null) {
-        HashMapEntry<K, V> e = entryForNullKey;
-        if (e == null)
-            return null;
-        if (accessOrder)
-            makeTail((LinkedEntry<K, V>) e);
-        return e.value;
-    }
-
-    int hash = Collections.secondaryHash(key);
-    HashMapEntry<K, V>[] tab = table;
-    for (HashMapEntry<K, V> e = tab[hash & (tab.length - 1)];
-         e != null; e = e.next) {
-        K eKey = e.key;
-        if (eKey == key || (e.hash == hash && key.equals(eKey))) {
-            if (accessOrder)
-                makeTail((LinkedEntry<K, V>) e);
-            return e.value;
-        }
-    }
-    return null;
-}
-
-//jdk1.8
- Node<K,V> e;
-        if ((e = getNode(hash(key), key)) == null)
-            return null;
-        if (accessOrder)
-            afterNodeAccess(e);
-        return e.value;
-```
-其实仔细看 `if (accessOrder)` 的逻辑即可，如果  `accessOrder=true` 那么每次 `get` 都会执行 N 次  `makeTail(LinkedEntry<K, V> e)` 。
-
-接下来看看：
-
-##### 4.5 LinkedHashMap.makeTail(LinkedEntry<K, V> e)
-```java
-/**
- * Relinks the given entry to the tail of the list. Under access ordering,
- * this method is invoked whenever the value of a  pre-existing entry is
- * read by Map.get or modified by Map.put.
- */
-//jdk1.7
-private void makeTail(LinkedEntry<K, V> e) {
-    // Unlink e
-    e.prv.nxt = e.nxt;
-    e.nxt.prv = e.prv;
-
-    // Relink e as tail
-    LinkedEntry<K, V> header = this.header;
-    LinkedEntry<K, V> oldTail = header.prv;
-    e.nxt = header;
-    e.prv = oldTail;
-    oldTail.nxt = header.prv = e;
-    modCount++;
-}
-//jdk1.8
-    void afterNodeAccess(Node<K,V> e) { // move node to last
-        LinkedHashMapEntry<K,V> last;
-        if (accessOrder && (last = tail) != e) {
-            LinkedHashMapEntry<K,V> p =
-                (LinkedHashMapEntry<K,V>)e, b = p.before, a = p.after;
-            p.after = null;
-            if (b == null)
-                head = a;
-            else
-                b.after = a;
-            if (a != null)
-                a.before = b;
-            else
-                last = b;
-            if (last == null)
-                head = p;
-            else {
-                p.before = last;
-                last.after = p;
-            }
-            tail = p;
-            ++modCount;
-        }
-    }
-```
-
-*// Unlink e*  
-<img src="http://ww2.sinaimg.cn/large/006lPEc9jw1f36m59c4tgj31kw2c7tgn.jpg" width="500x"/>  
-
-*// Relink e as tail*  
-<img src="http://ww3.sinaimg.cn/large/006lPEc9jw1f36m68rkisj31kw1eswnd.jpg" width="500x"/>  
-
-LinkedHashMap 是双向循环链表，然后此次 **LruCache.get -> LinkedHashMap.get** 的数据就被放到最末尾了。
-
-**以上就是 LruCache 核心工作原理**。
-
----
-
-接下来介绍 **LruCache 的容量溢出策略**。
-
-##### 4.6 LruCache.put(K key, V value)
-```java
-public final V put(K key, V value) {
-    ...
-    synchronized (this) {
-        ...
-        // 拿到键值对，计算出在容量中的相对长度，然后加上
-        size += safeSizeOf(key, value);
-        ...
-    }
-	...
-    trimToSize(maxSize);
-    return previous;
-}
-```
-记住几点：
-- **1.**put 开始的时候确实是把值放入 LinkedHashMap 了，**不管超不超过你设定的缓存容量**。
-- **2.**然后根据 `safeSizeOf` 方法计算 此次添加数据的容量是多少，并且加到 `size` 里 。
-- **3.**说到 `safeSizeOf` 就要讲到 `sizeOf(K key, V value)` 会计算出此次添加数据的大小 。
-- **4.**直到 put 要结束时，进行了 `trimToSize` 才判断 `size` 是否 大于 `maxSize` 然后进行最近很少访问数据的移除。
-
-##### 4.7 LruCache.trimToSize(int maxSize)
-```java
-public void trimToSize(int maxSize) {
-    /*
-     * 这是一个死循环，
-     * 1.只有 扩容 的情况下能立即跳出
-     * 2.非扩容的情况下，map的数据会一个一个删除，直到map里没有值了，就会跳出
-     */
-    while (true) {
-        K key;
-        V value;
-        synchronized (this) {
-            // 在重新调整容量大小前，本身容量就为空的话，会出异常的。
-            if (size < 0 || (map.isEmpty() && size != 0)) {
-                throw new IllegalStateException(
-                        getClass().getName() + ".sizeOf() is reporting inconsistent results!");
-            }
-            // 如果是 扩容 或者 map为空了，就会中断，因为扩容不会涉及到丢弃数据的情况
-            if (size <= maxSize || map.isEmpty()) {
-                break;
-            }
-
-            Map.Entry<K, V> toEvict = map.entrySet().iterator().next();
-            key = toEvict.getKey();
-            value = toEvict.getValue();
-            map.remove(key);
-            // 拿到键值对，计算出在容量中的相对长度，然后减去。
-            size -= safeSizeOf(key, value);
-            // 添加一次收回次数
-            evictionCount++;
-        }
-        /*
-         * 将最后一次删除的最少访问数据回调出去
-         */
-        entryRemoved(true, key, value, null);
-    }
-}
-```
-​        简单描述：会判断之前 `size` 是否大于 `maxSize` 。是的话，直接跳出后什么也不做。不是的话，证明已经溢出容量了。由 `makeTail` 图已知，最近经常访问的数据在最末尾。拿到一个存放 key 的 Set，然后一直一直从头开始删除，删一个判断是否溢出，直到没有溢出。
-
----
-
-
-
-##### 4.8 覆写 entryRemoved 的作用
-
-entryRemoved被LruCache调用的场景：
-- **1.（put）** put 发生 key 冲突时被调用，**evicted=false，key=此次 put 的 key，oldValue=被覆盖的冲突 value，newValue=此次 put 的 value**。
-- **2.（trimToSize）** trimToSize 的时候，只会被调用一次，就是最后一次被删除的最少访问数据带回来。**evicted=true，key=最后一次被删除的 key，oldValue=最后一次被删除的 value，newValue=null（此次没有冲突，只是 remove）**。
-- **3.（remove）** remove的时候，存在对应 key，并且被成功删除后被调用。**evicted=false，key=此次 put的 key，oldValue=此次删除的 value，newValue=null（此次没有冲突，只是 remove）**。
-- **4.（get后半段，查询丢失后处理情景，不过建议忽略）** get 的时候，正常的话不实现自定义 `create` 的话，代码上看 get 方法只会走一半，如果你实现了自定义的 `create(K key)` 方法，并且在 你 create 后的值放入 LruCache 中发生 key 冲突时被调用，**evicted=false，key=此次 get 的 key，oldValue=被你自定义 create(key)后的 value，newValue=原本存在 map 里的 key-value**。
-
-解释一下第四点吧：**<1>.**第四点是这样的，先 get(key)，然后没拿到，丢失。**<2>.**如果你提供了 自定义的 `create(key)` 方法，那么 LruCache 会根据你的逻辑自造一个 value，但是当放入的时候发现冲突了，但是已经放入了。**<3>.**此时，会将那个冲突的值再让回去覆盖，此时调用上述4.的 entryRemoved。
-
-因为 HashMap 在数据量大情况下，拿数据可能造成丢失，导致前半段查不到，你自定义的 `create(key)` 放入的时候发现又查到了**（有冲突）**。然后又急忙把原来的值放回去，此时你就白白create一趟，无所作为，还要走一遍entryRemoved。
-
-
-综上就如同注释写的一样：
-```java
-/**
- * 1.当被回收或者删掉时调用。该方法当value被回收释放存储空间时被remove调用
- * 或者替换条目值时put调用，默认实现什么都没做。
- * 2.该方法没用同步调用，如果其他线程访问缓存时，该方法也会执行。
- * 3.evicted=true：如果该条目被删除空间 （表示 进行了trimToSize or remove）  evicted=false：put冲突后 或 get里成功create后导致
- * 4.newValue!=null，那么则被put()或get()调用。
- */
-protected void entryRemoved(boolean evicted, K key, V oldValue, V newValue) {
-}
-```
-可以参考我的 [demo](https://github.com/CaMnter/AndroidLife/blob/master/app/src/main/java/com/camnter/newlife/views/activity/lrucache/LruCacheActivity.java) 里的 `entryRemoved` 。   
-
-##### 4.9 LruCache 局部同步锁
-
-在 `get`, `put`, `trimToSize`, `remove` 四个方法里的 `entryRemoved` 方法都不在同步块里。因为 `entryRemoved` 回调的参数都属于方法域参数，不会线程不安全。
-
-> 本地方法栈和程序计数器是线程隔离的数据区  
-
-
-#### 5. 开源项目中的使用
-
-[square/picasso](https://github.com/square/picasso)
-
-
-#### 6. 总结
-
-LruCache重要的几点：
-
-- **1.**LruCache 是通过 LinkedHashMap 构造方法的第三个参数的 `accessOrder=true` 实现了 `LinkedHashMap` 的数据排序**基于访问顺序** （最近访问的数据会在链表尾部），在容量溢出的时候，将链表头部的数据移除。从而，实现了 LRU 数据缓存机制。
-- **2.**LruCache 在内部的get、put、remove包括 trimToSize 都是安全的（因为都上锁了）。
-- **3.**LruCache 自身并没有释放内存，将 LinkedHashMap 的数据移除了，如果数据还在别的地方被引用了，还是有泄漏问题，还需要手动释放内存。
-- **4.**覆写 `entryRemoved` 方法能知道 LruCache 数据移除是是否发生了冲突，也可以去手动释放资源。
-- **5.**`maxSize` 和 `sizeOf(K key, V value)` 方法的覆写息息相关，必须相同单位。（ 比如 maxSize 是7MB，自定义的 sizeOf 计算每个数据大小的时候必须能算出与MB之间有联系的单位 ）
-
-### 7）DiskLruCache 源码解析
-
-#### （1）存储位置
-
-​	`DiskLruCache` 并没有限制数据的缓存位置，可以自由地进行设定，但是通常情况下多数应用程序都会将缓存的位置选择为  `/sdcard/Android/data/<application package>/cache` 这个路径。选择在这个位置有两点好处：第一，这是存储在SD卡上的，因此即使缓存再多的数据也不会对手机的内置存储空间有任何影响，只要SD卡空间足够就行。第二，这个路径被Android系统认定为应用程序的缓存路径，当程序被卸载的时候，这里的数据也会一起被清除掉，这样就不会出现删除程序之后手机上还有很多残留数据的问题。
-
-#### （4）打开缓存
-
-​	DiskLruCache是不能new出实例的，如果我们要创建一个DiskLruCache的实例，则需要调用它的open()方法，接口如下所示：
-
-​	`public static DiskLruCache open(File directory, int appVersion, int valueCount, long maxSize)open()`方法接收四个参数，第一个参数指定的是数据的缓存地址，第二个参数指定当前应用程序的版本号，第三个参数指定同一个key可以对应多少个缓存文件，基本都是传1，第四个参数指定最多可以缓存多少字节的数据。
-
-​	其中缓存地址前面已经说过了，通常都会存放在 `/sdcard/Android/data/<application package>/cache` 这个路径下面，但同时我们又需要考虑如果这个手机没有SD卡，或者SD正好被移除了的情况，因此比较优秀的程序都会专门写一个方法来获取缓存地址，如下所示：
-
-```java
-public File getDiskCacheDir(Context context, String uniqueName) {
-	String cachePath;
-	if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
-			|| !Environment.isExternalStorageRemovable()) {
-		cachePath = context.getExternalCacheDir().getPath();
-	} else {
-		cachePath = context.getCacheDir().getPath();
-	}
-	return new File(cachePath + File.separator + uniqueName);
-}
-```
-
-​	可以看到，当SD卡存在或者SD卡不可被移除的时候，就调用getExternalCacheDir()方法来获取缓存路径，否则就调用getCacheDir()方法来获取缓存路径。前者获取到的就是 `/sdcard/Android/data/<application package>/cache` 这个路径，而后者获取到的是 `/data/data/<application package>/cache` 这个路径。
-
-​	接着又将获取到的路径和一个`uniqueName`进行拼接，作为最终的缓存路径返回。那么这个uniqueName又是什么呢？其实这就是为了对不同类型的数据进行区分而设定的一个唯一值，比如说在网易新闻缓存路径下看到的`bitmap、object`等文件夹。
-
-​	接着是应用程序版本号，我们可以使用如下代码简单地获取到当前应用程序的版本号：
-
-```java
-public int getAppVersion(Context context) {
-	try {
-		PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-		return info.versionCode;
-	} catch (NameNotFoundException e) {
-		e.printStackTrace();
-	}
-	return 1;
-}
-```
-​	需要注意的是，每当版本号改变，缓存路径下存储的所有数据都会被清除掉，因为DiskLruCache认为当应用程序有版本更新的时候，所有的数据都应该从网上重新获取。
-
-
-​	后面两个参数就没什么需要解释的了，第三个参数传1，第四个参数通常传入10M的大小就够了，这个可以根据自身的情况进行调节。
-
-​	因此，一个非常标准的open()方法就可以这样写：
-
-```java
-DiskLruCache mDiskLruCache = null;
-try {
-	File cacheDir = getDiskCacheDir(context, "bitmap");
-	if (!cacheDir.exists()) {
-		cacheDir.mkdirs();
-	}
-	mDiskLruCache = DiskLruCache.open(cacheDir, getAppVersion(context), 1, 10 * 1024 * 1024);
-} catch (IOException e) {
-	e.printStackTrace();
-}
-```
-
-​	首先调用getDiskCacheDir()方法获取到缓存地址的路径，然后判断一下该路径是否存在，如果不存在就创建一下。接着调用DiskLruCache的open()方法来创建实例，并把四个参数传入即可。
-
-​	有了DiskLruCache的实例之后，我们就可以对缓存的数据进行操作了，操作类型主要包括写入、访问、移除等，我们一个个进行学习。
-
-#### （3）写入缓存
-
-​	先来看写入，比如说现在有一张图片，地址是https://img-my.csdn.net/uploads/201309/01/1378037235_7476.jpg，那么为了将这张图片下载下来，就可以这样写：
-
-```java
-private boolean downloadUrlToStream(String urlString, OutputStream outputStream) {
-	HttpURLConnection urlConnection = null;
-	BufferedOutputStream out = null;
-	BufferedInputStream in = null;
-	try {
-		final URL url = new URL(urlString);
-		urlConnection = (HttpURLConnection) url.openConnection();
-		in = new BufferedInputStream(urlConnection.getInputStream(), 8 * 1024);
-		out = new BufferedOutputStream(outputStream, 8 * 1024);
-		int b;
-		while ((b = in.read()) != -1) {
-			out.write(b);
-		}
-		return true;
-	} catch (final IOException e) {
-		e.printStackTrace();
-	} finally {
-		if (urlConnection != null) {
-			urlConnection.disconnect();
-		}
-		try {
-			if (out != null) {
-				out.close();
-			}
-			if (in != null) {
-				in.close();
-			}
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
-	}
-	return false;
-}
-```
-
-​	这段代码相当基础，相信大家都看得懂，就是访问 `urlString` 中传入的网址，并通过 `outputStream` 写入到本地。有了这个方法之后，下面我们就可以使用 `DiskLruCache` 来进行写入了，写入的操作是借 `DiskLruCache.Editor` 这个类完成的。类似地，这个类也是不能new的，需要调用DiskLruCache的edit()方法来获取实例，接口如下所示：`public Editor edit(String key) throws IOException`可以看到，edit()方法接收一个参数key，这个key将会成为缓存文件的文件名，并且必须要和图片的URL是一一对应的。那么怎样才能让key和图片的URL能够一一对应呢？直接使用URL来作为key？不太合适，因为图片URL中可能包含一些特殊字符，这些字符有可能在命名文件时是不合法的。其实最简单的做法就是将图片的URL进行MD5编码，编码后的字符串肯定是唯一的，并且只会包含0-F这样的字符，完全符合文件的命名规则。
-
-那么我们就写一个方法用来将字符串进行MD5编码，代码如下所示：
-
-```java
-public String hashKeyForDisk(String key) {
-	String cacheKey;
-	try {
-		final MessageDigest mDigest = MessageDigest.getInstance("MD5");
-		mDigest.update(key.getBytes());
-		cacheKey = bytesToHexString(mDigest.digest());
-	} catch (NoSuchAlgorithmException e) {
-		cacheKey = String.valueOf(key.hashCode());
-	}
-	return cacheKey;
-}
-
-private String bytesToHexString(byte[] bytes) {
-	StringBuilder sb = new StringBuilder();
-	for (int i = 0; i < bytes.length; i++) {
-		String hex = Integer.toHexString(0xFF & bytes[i]);
-		if (hex.length() == 1) {
-			sb.append('0');
-		}
-		sb.append(hex);
-	}
-	return sb.toString();
-}
-
-```
-
-​	代码很简单，现在我们只需要调用一下hashKeyForDisk()方法，并把图片的URL传入到这个方法中，就可以得到对应的key了。
-
-
-​	因此，现在就可以这样写来得到一个DiskLruCache.Editor的实例：
-
-```java
-String imageUrl = "https://img-my.csdn.net/uploads/201309/01/1378037235_7476.jpg";
-String key = hashKeyForDisk(imageUrl);
-DiskLruCache.Editor editor = mDiskLruCache.edit(key);
-```
-
-​	有了 `DiskLruCache.Editor` 的实例之后，我们可以调用它的 `newOutputStream()` 方法来创建一个输出流，然后把它传入到 `downloadUrlToStream()` 中就能实现下载并写入缓存的功能了。注意 `newOutputStream()` 方法接收一个 `index` 参数，由于前面在设置 `valueCount` 的时候指定的是1，所以这里 `index` 传0就可以了。在写入操作执行完之后，我们还需要调用一下 `commit()` 方法进行提交才能使写入生效，调用 `abort()` 方法的话则表示放弃此次写入。
-
-
-​	因此，一次完整写入操作的代码如下所示：
-
-```java
-new Thread(new Runnable() {
-	@Override
-	public void run() {
-		try {
-			String imageUrl = "https://img-my.csdn.net/uploads/201309/01/1378037235_7476.jpg";
-			String key = hashKeyForDisk(imageUrl);
-			DiskLruCache.Editor editor = mDiskLruCache.edit(key);
-			if (editor != null) {
-				OutputStream outputStream = editor.newOutputStream(0);
-				if (downloadUrlToStream(imageUrl, outputStream)) {
-					editor.commit();
-				} else {
-					editor.abort();
-				}
-			}
-			mDiskLruCache.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-}).start();
-```
-
-​	由于这里调用了 `downloadUrlToStream()` 方法来从网络上下载图片，所以一定要确保这段代码是在子线程当中执行的。注意在代码的最后我还调用了一下flush()方法，这个方法并不是每次写入都必须要调用的，但在这里却不可缺少，我会在后面说明它的作用。
-
-
-​	现在的话缓存应该是已经成功写入了，我们进入到SD卡上的缓存目录里看一下，如下图所示：
-
-​	可以看到，这里有一个文件名很长的文件，和一个 `journal` 文件，那个文件名很长的文件自然就是缓存的图片了，因为是使用了MD5编码来进行命名的。
-
-#### （4）读取缓存
-
-
-​	缓存已经写入成功之后，接下来我们就该学习一下如何读取了。读取的方法要比写入简单一些，主要是借助`DiskLruCache` 的 `get()` 方法实现的，接口如下所示：
-
-`public synchronized Snapshot get(String key) throws IOException`很明显，`get()` 方法要求传入一个key来获取到相应的缓存数据，而这个key毫无疑问就是将图片URL进行MD5编码后的值了，因此读取缓存数据的代码就可以这样写：
-
-```java
-String imageUrl = "https://img-my.csdn.net/uploads/201309/01/1378037235_7476.jpg";
-String key = hashKeyForDisk(imageUrl);
-DiskLruCache.Snapshot snapShot = mDiskLruCache.get(key);
-```
-
-​	很奇怪的是，这里获取到的是一个 `DiskLruCache.Snapshot` 对象，这个对象我们该怎么利用呢？很简单，只需要调用它的 `getInputStream()` 方法就可以得到缓存文件的输入流了。同样地，`getInputStream()` 方法也需要传一个index参数，这里传入0就好。有了文件的输入流之后，想要把缓存图片显示到界面上就轻而易举了。所以，一段完整的读取缓存，并将图片加载到界面上的代码如下所示：
-
-```java
-try {
-	String imageUrl = "https://img-my.csdn.net/uploads/201309/01/1378037235_7476.jpg";
-	String key = hashKeyForDisk(imageUrl);
-	DiskLruCache.Snapshot snapShot = mDiskLruCache.get(key);
-	if (snapShot != null) {
-		InputStream is = snapShot.getInputStream(0);
-		Bitmap bitmap = BitmapFactory.decodeStream(is);
-		mImage.setImageBitmap(bitmap);
-	}
-} catch (IOException e) {
-	e.printStackTrace();
-}
-```
-
-​	我们使用了`BitmapFactory `的 `decodeStream()` 方法将文件流解析成 `Bitmap` 对象，然后把它设置到`ImageView`当中。如果运行一下程序，将会看到如下效果：
-
-​	OK，图片已经成功显示出来了。注意这是我们从本地缓存中加载的，而不是从网络上加载的，因此即使在你手机没有联网的情况下，这张图片仍然可以显示出来。
-
-#### （5）移除缓存
-
-
-​	学习完了写入缓存和读取缓存的方法之后，最难的两个操作你就都已经掌握了，那么接下来要学习的移除缓存对你来说也一定非常轻松了。移除缓存主要是借助 `DiskLruCache` 的 `remove()` 方法实现的，接口如下所示：
-
-`public synchronized boolean remove(String key) throws IOException`
-相信你已经相当熟悉了，`remove()`方法中要求传入一个key，然后会删除这个key对应的缓存图片，示例代码如下：
-
-```java
-try {
-	String imageUrl = "https://img-my.csdn.net/uploads/201309/01/1378037235_7476.jpg";  
-	String key = hashKeyForDisk(imageUrl);  
-	mDiskLruCache.remove(key);
-} catch (IOException e) {
-	e.printStackTrace();
-}
-```
-
-​	用法虽然简单，但是你要知道，这个方法我们并不应该经常去调用它。因为你完全不需要担心缓存的数据过多从而占用SD卡太多空间的问题，DiskLruCache会根据我们在调用open()方法时设定的缓存最大值来自动删除多余的缓存。只有你确定某个key对应的缓存内容已经过期，需要从网络获取最新数据的时候才应该调用remove()方法来移除缓存。
-
-#### （6）其它API
-
-​	除了写入缓存、读取缓存、移除缓存之外，DiskLruCache还提供了另外一些比较常用的API，我们简单学习一下。
-
-**1.size()**
-
-​	这个方法会返回当前缓存路径下所有缓存数据的总字节数，以byte为单位，如果应用程序中需要在界面上显示当前缓存数据的总大小，就可以通过调用这个方法计算出来。
-
-**2.flush()**
-
-​	这个方法用于将内存中的操作记录同步到日志文件（也就是journal文件）当中。这个方法非常重要，因为`DiskLruCache`能够正常工作的前提就是要依赖于journal文件中的内容。前面在讲解写入缓存操作的时候我有调用过一次这个方法，但其实并不是每次写入缓存都要调用一次`flush()`方法的，频繁地调用并不会带来任何好处，只会额外增加同步journal文件的时间。比较标准的做法就是在`Activity`的`onPause()`方法中去调用一次`flush()`方法就可以了。
-
-**3.close()**
-
-​	这个方法用于将 `DiskLruCache`关闭掉，是和 `open()`方法对应的一个方法。关闭掉了之后就不能再调用`DiskLruCache`中任何操作缓存数据的方法，通常只应该在Activity的`onDestroy()`方法中去调用close()方法。
-
-**4.delete()**
-
-​	这个方法用于将所有的缓存数据全部删除，比如说网易新闻中的那个手动清理缓存功能，其实只需要调用一下 `DiskLruCache` 的 `delete()` 方法就可以实现了。
-
-#### （7）解读journal
-
-​	前面已经提到过，DiskLruCache能够正常工作的前提就是要依赖于journal文件中的内容，因此，能够读懂journal文件对于我们理解DiskLruCache的工作原理有着非常重要的作用。那么journal文件中的内容到底是什么样的呢？我们来打开瞧一瞧吧，如下图所示：
-
-![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/DiskLruCache的journal日志文件.png)
-
-
-​	由于现在只缓存了一张图片，所以journal中并没有几行日志，我们一行行进行分析。第一行是个固定的字符串“libcore.io.DiskLruCache”，标志着我们使用的是DiskLruCache技术。第二行是DiskLruCache的版本号，这个值是恒为1的。第三行是应用程序的版本号，我们在open()方法里传入的版本号是什么这里就会显示什么。第四行是valueCount，这个值也是在open()方法中传入的，通常情况下都为1。第五行是一个空行。前五行也被称为journal文件的头，这部分内容还是比较好理解的，但是接下来的部分就要稍微动点脑筋了。
-
-​	第六行是以一个DIRTY前缀开始的，后面紧跟着缓存图片的key。通常我们看到DIRTY这个字样都不代表着什么好事情，意味着这是一条脏数据。没错，每当我们调用一次DiskLruCache的edit()方法时，都会向journal文件中写入一条DIRTY记录，表示我们正准备写入一条缓存数据，但不知结果如何。然后调用commit()方法表示写入缓存成功，这时会向journal中写入一条CLEAN记录，意味着这条“脏”数据被“洗干净了”，调用abort()方法表示写入缓存失败，这时会向journal中写入一条REMOVE记录。也就是说，每一行DIRTY的key，后面都应该有一行对应的CLEAN或者REMOVE的记录，否则这条数据就是“脏”的，会被自动删除掉。
-
-​	如果你足够细心的话应该还会注意到，第七行的那条记录，除了CLEAN前缀和key之外，后面还有一个152313，这是什么意思呢？其实，DiskLruCache会在每一行CLEAN记录的最后加上该条缓存数据的大小，以字节为单位。152313也就是我们缓存的那张图片的字节数了，换算出来大概是148.74K，和缓存图片刚刚好一样大，如下图所示：
-
-​	前面我们所学的size()方法可以获取到当前缓存路径下所有缓存数据的总字节数，其实它的工作原理就是把journal文件中所有CLEAN记录的字节数相加，求出的总合再把它返回而已。
-
-​	除`了DIRTY、CLEAN、REMOVE` 之外，还有一种前缀是READ的记录，这个就非常简单了，每当我们调用get()方法去读取一条缓存数据时，就会向journal文件中写入一条READ记录。因此，像网易新闻这种图片和数据量都非常大的程序，journal文件中就可能会有大量的READ记录。
-
-​	那么你可能会担心了，如果我不停频繁操作的话，就会不断地向journal文件中写入数据，那这样journal文件岂不是会越来越大？这倒不必担心，DiskLruCache中使用了一个redundantOpCount变量来记录用户操作的次数，每执行一次写入、读取或移除缓存的操作，这个变量值都会加1，当变量值达到2000的时候就会触发重构journal的事件，这时会自动把journal中一些多余的、不必要的记录全部清除掉，保证journal文件的大小始终保持在一个合理的范围内。
-
-​	好了，这样的话我们就算是把DiskLruCache的用法以及简要的工作原理分析完了。至于DiskLruCache的源码还是比较简单的， 限于篇幅原因就不在这里展开了，感兴趣的朋友可以自己去摸索。
-
-## 13.Handler机制 
-
-
-
-## 14.LRUCache原理
-
-
-
-## 15.图片加载原理
-
-
-
-## 16.模块化实现（好处，原因）
-
-
-
-## 17.JVM
-
-
-
-## 18.视频加密传输
-
-
-
-## 19.统计启动时长,标准
-
-
-
-## 20.如何保持应用的稳定性
-
-
-
-## 21.ThreadLocal 原理
-
-
-
-## 22.谈谈classloader
-
-
-
-## 23.动态布局
-
-
-
-## 24.热修复,插件化
-
-
-
-## 25.SpareArray原理
-
-
-
-## 26.性能优化,怎么保证应用启动不卡顿
-
-
-
-## 27.怎么去除重复代码
-
-
-
-## 28.SP是进程同步的吗?有什么方法做到同步
-
-
-
-## 29.介绍下SurfView
-
-
-
-## 30.ConcurrentHashMap 的实现原理
-
-
-
-## 31.BroadcastReceiver，LocalBroadcastReceiver 区别
-
-
-
-## 32.Bundle 机制
-
-
-
-## 33.android 事件传递机制
-
-
-
-## 34.线程间 操作 List
-
-
-
-## 35.App启动流程，从点击桌面开始
-
-
-
-## 36.动态加载
-
-
-
-## 37.OSGI
-
-
-
-## 38.类加载器
-
-
-
-## 39.Https请求慢的解决办法，DNS，携带数据，直接访问IP
-
-
-
-## 40.GC回收机制、对象创建、新生代与老生代
-
-
-
-## 41.画出 Android 的大体架构图
-
-
-
-## 42.描述清点击 Android Studio 的 build 按钮后发生了什么，大体说清一个应用程序安装到手机上时发生了什么；
-
-
-
-## 43.对 Dalvik、ART 虚拟机有基本的了解；
-
-
-
-## 44.Android 上的 Inter-Process-Communication 跨进程通信时如何工作的；
-
-
-
-## 45.App 是如何沙箱化，为什么要这么做；
-
-
-
-## 46.权限管理系统（底层的权限是如何进行 grant 的）
-
-
-
-## 47.进程和 Application 的生命周期；
-
-
-
-## 48.系统启动流程 Zygote进程 –> SystemServer进程 –> 各种系统服务 –> 应用进程
-
-
-
-## 49.排序，快速排序的实现
-
-
-
-## 50.树：B 树的介绍
-
-
-
-## 51.图：有向无环图的解释
-
-
-
-## 52.TCP/UDP的区别与应用，HTTP相关 提到过Websocket 问了WebSocket相关以及与socket的区别
-
-
-
-## 53.synchronized与Lock的区别
-
-
-
-## 54.ava中对象的生命周期
-
-
-
-## 55.双亲委派模型
-
-
-
-## 56.RxJava
-
-
-
-## 57.抽象类和接口的区别
-
-
-
-## 58.集合 Set实现
-
-
-
-## 59.JVM 内存区域,开线程影响哪块内存
-
-
-
-## 60.https相关，如何验证证书的合法性，https中哪里用了对称加密，哪里用了非对称加密，对加密算法（如RSA）等是否有了解
-
-
-
-## 61.listview图片加载错乱的原理和解决方案
-
-
-
-## 62.进程保活
-
-
-
-## 63.图片加载库相关，bitmap如何处理大图，如一张30M的大图，如何预- - 防OOM
-
-
-
-## 64.网络请求缓存处理，okhttp如何处理网络缓存的
-
-
-
-## 65.动态权限适配方案，权限组的概念
-
-
-
-## 66.链表反转
-
-
-
-## 67.排序，堆排序实现
-
-
-
-## 68.判断环（猜测应该是链表环）
-
-
-
-## 69.常用数据结构简介
-
-
-
-## 70.开启线程的三种方式,run()和start()方法区别
-
-
-
-## 71.CAS介绍
-
-
-
-### 72.并发集合了解哪些
-
-
-
-## 73.JVM内存模型
-
-
-
-## 74.进程状态
-
-
-
-## 75.进程与线程
-
-
-
-## 76.进程调度
-
-
-
-## 77.二叉树 深度遍历与广度遍历
-
-
-
-## 78.数库数据迁移问题
-
-
-
-## 79.设计模式相关（例如Android中哪里使用了观察者模式，单例模式相关）
-
-
-
-## 80.是否熟悉Android jni开发，jni如何调用java层代码
-
-
-
-## 81.进程间通信的方式
-
-
-
-## 82.java注解
-
-
-
-## 83.计算一个view的嵌套层级
-
-
-
-## 84.项目组件化的理解
-
-
-
-## 85.多线程断点续传原理
-
-
-
-## 86.Android系统为什么会设计ContentProvider，进程共享和线程安全问题
-
-
-
-## 87.Android相关优化（如内存优化、网络优化、布局优化、电量优化、业务优化）
-
-
-
-## 88.EventBus实现原理
-
-
-
-## 89.activity栈
-
-
-
-## 90.内部类和静态内部类和匿名内部类，以及项目中的应用
-
-
-
-## 91.arraylist和linkedlist的区别，以及应用场景
-
-
-
-## 91.封装view的时候怎么知道view的大小
-
-
-
-## 92.service和activity怎么进行数据交互
-
-
-
-## 93.下拉状态栏是不是影响activity的生命周期，如果在onStop的时候做了网络请求，onResume的时候怎么恢复
-
-
-
-## 94.view渲染
-
-
-
-
-
-## 95.static synchronized 方法的多线程访问和作用，同一个类里面两个synchronized方法，两个线程同时访问的问题
-
-
-
-## 96.数据结构中堆的概念，堆排序
-
-
-
-## 97.singleTask启动模式
-
-
-
-## 98.用到的一些开源框架，介绍一个看过源码的，内部实现过程。
-
-
-
-## 100.ReentrantLock的内部实现
-
-
-
-## 101.App启动崩溃异常捕捉
-
-
-
-## 102.二叉树，给出根节点和目标节点，找出从根节点到目标节点的路径
-
-
-
-## 103.集合的接口和具体实现类，介绍
-
-
-
-## 104.TreeMap具体实现
-
-
-
-## 105.synchronized与ReentrantLock
-
-
-
-## 106.手写生产者/消费者模式
-
-
-
-## 107.逻辑地址与物理地址，为什么使用逻辑地址
-
-
-
-## 108..Android进程分类
-
-
-
-## 109.前台切换到后台，然后再回到前台，Activity生命周期回调方法。弹出Dialog，生命值周期回调方法。
-
-
-
-## 110.Activity的启动模式
-
-
-
-### 111.ANR的原因
-
-
-
-## 112.Activity之间的通信方式
-
-
-
-## 113.Activity与Fragment之间生命周期比较
-
-
-
-## 114.广播的使用场景
-
-
-
-## 115.Bitmap 使用时候注意什么？
-
-
-
-## 116.Oom 是否可以try catch ？
-
-
-
-## 117.内存泄露如何产生？
-
-
-
-## 118.StringBuffer 与StringBuilder 的区别
-
-
-
-## 119.多进程场景遇见过么
-
-
-
-## 120.sqlite升级，增加字段的语句
-
-
-
-## 121.bitmap recycler 相关
-
-
-
-## 122.强引用置为null，会不会被回收？
-
-
-
-## 123.glide 使用什么缓存,内存缓存如何控制大小？
-
-
-
-## 124.如何保证多线程读写文件的安全
-
-
-
-## 125.如何保证线程安全？
-
-
-
-## 126.App中唤醒其他进程的实现方式
-
-
-
-## 127.AndroidManifest的作用与理解
-
-
-
-## 128.List,Set,Map的区别
-
-
-
-## 129.HashSet与HashMap怎么判断集合元素重复
-
-
-
-## 130.Android中开启摄像头的主要步骤
-
-
-
-## 131.NIO
-
-
-
-## 132.AlertDialog,popupWindow,Activity区别
-
-
-
-## 133.String 为什么要设计成不可变的？
-
-
-
-## 134.fragment 各种情况下的生命周期
-
-
-
-## 135.Activity 上有 Dialog 的时候按 home 键时的生命周期
-
-
-
-## 136.横竖屏切换的时候，Activity 各种情况下的生命周期
-
-
-
-## 137.Application 和 Activity 的 context 对象的区别
-
-
-
-## 138.序列化的作用，以及 Android 两种序列化的区别。
-
-
-
-## 140.List 和 Map 的实现方式以及存储方式。
-
-
-
-## 141.静态内部类的设计意图。
-
-
-
-## 142.线程如何关闭，以及如何防止线程的内存泄漏
-
-
-
-## 143.软引用、弱引用区别
-
-
-
-## 144.ANR怎么分析解决
-
-
-
-## 145.LinearLayout、RelativeLayout、FrameLayout的特性、使用场景
-
-
-
-## 146.如何实现Fragment的滑动
-
-
-
-## 147.ViewPager使用细节，如何设置成每次只初始化当前的Fragment，其他的不初始化
-
-
-
-## 148.ListView重用的是什么
-
-
-
-## 149.AIDL机制
-
-
-
-## 150.Android为什么引入Parcelable
-
-
-
-## 151.有没有尝试简化Parcelable的使用
-
-
-
-## 152.项目：拉活怎么做的
-
-
-
-## 153.应用安装过程
-
-
-
-## 154.某海外直播公司
-
-
-
-## 155.为什么要有线程，而不是仅仅用进程？
-
-
-
-## 156.算法判断单链表成环与否？
-
-
-
-## 157.如何实现线程同步？
-
-
-
-## 158.object类的equal 和hashcode 方法重写，为什么？
-
-
-
-## 159.简述IPC？
-
-
-
-## 160.fragment之间传递数据的方式？
-
-
-
-## 161.用IDE如何分析内存泄漏？
-
-
-
-## 162. 差值器&估值器
-
-
-
-## 163.Binder相关
-
-
-
-## 164.okhttp源码？
-
-
-
-## 165.性能优化如何分析systrace？
-
-
-
-## 166.点击事件被拦截，但是相传到下面的view，如何操作？
-
-
-
-## 167.string to integer
-
-
-
-## 168.合并多个单有序链表（假设都是递增的）
-
-
-
-## 169.synchronize的原理
-
-
-
-## 170.ActicityThread相关？
-
-#### 1、入口
-
-​	以前都说Activity的入口是onCreate() 。及时Android上一个应用的入口，应该是ActivityThread。和普通的java类一样，入口是一个main方法。
-
-源码：
-
-```java
-public static final void main(String[] args) {
-        SamplingProfilerIntegration.start();
-       ……
-        Looper.prepareMainLooper();
-        if (sMainThreadHandler == null) {
-            sMainThreadHandler = new Handler();
-        }
-        ActivityThread thread = new ActivityThread();
-        thread.attach(false);
-       ……
-        Looper.loop();
-       ……
-        thread.detach();
-        ……
-        Slog.i(TAG, "Main thread of " + name + " is now exiting");
-    }
-```
-
-​	下面仔细分析一下这个main方法。
-
-#### 2、Looper.prepareMainLooper()
-
-​	ActivityThread其实就是我们经常说的UI thread，也就是主线程。我们都知道主线程可以使用Handler进行异步通信，因为主线程中已经创建了Looper，而这个Looper就是在这里创建的。如果其他线程需要使用Handler通信，就要自己去创建Looper。
-
-#### 3、sMainThreadHandler = new Handler()
-
-​	创建一个Handler。
-
-#### 4、 ActivityThread thread = new ActivityThread()
-
-​	创建ActivityThread 对象。
-
-​	ActivityThread 有几个比较重要的成员变量，会在创建ActivityThread对象时初始化。
-
-​	(1) final ApplicationThread mAppThread = new ApplicationThread();
-
-​	ApplicationThread继承自ApplicationThreadNative， 而ApplicationThreadNative又继承自Binder并实现了IApplicationThread接口。IApplicationThread继承自IInterface。这是一个很明显的binder结构，用于于Ams通信。IApplicationThread接口定义了对一个程序（linux的进程）操作的接口。ApplicationThread通过binder与Ams通信，并将Ams的调用，通过下面的H类（也就是Hnalder）将消息发送到消息队列，然后进行相应的操作，入activity的start， stop。
-
-（2）final H mH = new H();
-
-private final class H extends Handler
-
-mH负责处理ApplicationThread发送到消息队列的消息，例如：
-
-```java
-public void handleMessage(Message msg) {
-    if (DEBUG_MESSAGES) Slog.v(TAG, ">>> handling: " + msg.what);
-    switch (msg.what) {
-        case LAUNCH_ACTIVITY: {
-            ActivityClientRecord r = (ActivityClientRecord)msg.obj;
-            r.packageInfo = getPackageInfoNoCheck(
-                r.activityInfo.applicationInfo);
-            handleLaunchActivity(r, null);
-        } break;
-```
-
-#### 5、 handleLaunchActivity(r, null);
-
-​	从名字中就可以看出，这里就将进行启动activity的工作了。方法中主要调用了这一句：
-
-Activity a = performLaunchActivity(r, customIntent);
-
-#### 6、performLaunchActivity（）
-
-进行了一些初始化和赋值操作后，创建activity。
-
-​	activity = mInstrumentation.newActivity(cl, component.getClassName(), r.intent);
-
-然后调用：
-
-​	mInstrumentation.callActivityOnCreate(activity, r.state);
-
-这一句就会调用到acitivity的onCreate方法了，就进入了大多数应用开发的入口了。
-
-## 编程题
-
-#### 一个按升序排列好的数组int[] arry = {-5,-1,0,5,9,11,13,15,22,35,46},输入一个x，int x = 31，在数据中找出和为x的两个数，例如 9 + 22 = 31，要求算法的时间复杂度为O(n);
-
-**分析**：该题不难，主要关注点应该为要求时间复杂度为O(n),因为数组是按升序排列，所以可以定义两个指针i、j，分别从数组的两端开始遍历，如果a[i]+a[j]大于31，则应该让尾指针j前移，如果a[i]+a[j]小于31，则应该让头指针i后移，直到找到a[i]+a[j]等于31，或遍历完成 
-
-```java
-public class Find {
-    public static void main(String[] args) {
-        int[] arr = {-5, -1, 0, 5, 9, 11, 13, 15, 22, 35, 46};
-        int sum = 31;
-        find(arr, sum);
-    }
-    private static void find(int[] arr, int sum) {
-        if (arr.length <= 1) {
-            System.out.println("arr wrong");
-            return;
-        }
-        int i = 0;
-        int j = arr.length - 1;
-        while (i != j) {
-            n++;
-            int tmpSum = arr[i] + arr[j];
-            if (tmpSum == sum) {
-                System.out.println("a[" + i + "] = " + arr[i] + ", a[" + j + "] = " + arr[j]);
-                return;
-            }
-            if (tmpSum < sum) i++;
-            if (tmpSum > sum) j--;
-        }
-        System.out.println("not found");
-    }
-}
-
-```
-
-#### 如何向一个数据库具有int类型A，B，C，D四列的表中随机插入10000条数据？如何按升序取出A列中前10个数？
-
-**说明**: 1、随机数可以在代码生成，开启事务之后循环插入，然后关闭事务。 
-
-​	  2、使用limit和order by进行升序取固定个数的值
-
-#### x个苹果，一天只能吃一个、两个、或者三个，问多少天可以吃完
-
-
-
-#### 一个无序，不重复数组，输出N个元素，使得N个元素的和相加为M，给出时间复杂度、空间复杂度。手写算法
-
-![sort_alg](pics/sort_alg.png)
