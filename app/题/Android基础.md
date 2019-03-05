@@ -1730,31 +1730,97 @@ msg.target.dispatchMessage(msg);
 
 ### （4）Android 运行的进程
 
->   为了,更好的了解Handler的机制,我们应该首先,将Android系统整个运行进程都要烂熟于心,下面是**android 进程运行图**:
+>   为了更好的了解Handler的机制,我们应该首先,将Android系统整个运行进程都要烂熟于心,下面是**android 进程运行图**:
 >
-> ![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/Android进程图.png)
+>   ![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/Android进程图.png)
 >
-> 从图中我们可以看到,**当我们从外部调用组件的时候,Service 和 ContentProvider 是从线程池那里获取线程,而Activity 和BroadcastReceiver是直接在主线程运行**,为了,追踪线程,我们可以用debug 方法,或者使用一个工具类,这里,我们创建一个用于监视线程的工具类
+>   从图中我们可以看到,**当我们从外部调用组件的时候,Service 和 ContentProvider 是从线程池那里获取线程,而Activity 和BroadcastReceiver是直接在主线程运行**,为了,追踪线程,我们可以用debug 方法,或者使用一个工具类,这里,我们创建一个用于监视线程的工具类
 >
-> ```
-> `/**`` ``* @author Tom_achai`` ``* @``date` `2011-11-20`` ``* `` ``*/``public class Utils {``    ``public static long getThreadId(){``        ``Thread t = Thread.currentThread();``        ``return` `t.getId();``    ``}``    ` `    ``/**``     ``* 获取单独线程信息``     ``* @``return``     ``*/``    ``public static String getThreadSignature(){``        ``Thread t = Thread.currentThread();``        ``long l = t.getId();``        ``String name = t.getName();``        ``long p = t.getPriority();``        ``String gname = t.getThreadGroup().getName();``        ``return` `(``"(Thread):"``+name+``":(id)"``+ l +``"(:priority)"` `+ p + ``":(group)"` `+ gname );``    ``}``    ` `    ` `    ` `    ``/**``     ``*获取当前线程 信息``     ``*/``    ``public static void logThreadSignature(){``        ``Log.d(``"ThreadUtils"``, getThreadSignature());``    ``}``    ` `    ``public static void logThreadSignature(String name ){``        ``Log.d(``"ThreadUtils"``, name + ``":"``+getThreadSignature());``    ``}``    ` `    ``public static void sleepForInSecs(int secs){``        ``try{``            ``Thread.``sleep``(secs * 1000);``        ``}catch (Exception e) {``            ``//` `TODO: handle exception``            ``e.printStackTrace();``        ``}``    ``}``    ` `    ``/**``     ``* 讲String放进Bundle 中``     ``* @param message``     ``* @``return``     ``*/``    ``public static Bundle getStringAsBundle(String message){``        ``Bundle b = new Bundle();``        ``b.putString(``"message"``, message);``        ``return` `b;``    ``}``    ` `    ``/**``     ``* ``     ``* 获取Bundle的String``     ``* @param b``     ``* @``return``     ``*/``    ``public static String getStringFromABundle(Bundle b){``        ``return` `b.getString(``"message"``);``    ``}``}`
-> ```
+>   ```java
+>   /**
+>    * @author Tom_achai
+>    * @date 2011-11-20
+>    * 
+>    */
+>   public class Utils {
+>       public static long getThreadId(){
+>           Thread t = Thread.currentThread();
+>           return t.getId();
+>       }
+>        
+>       /**
+>        * 获取单独线程信息
+>        * @return
+>        */
+>       public static String getThreadSignature(){
+>           Thread t = Thread.currentThread();
+>           long l = t.getId();
+>           String name = t.getName();
+>           long p = t.getPriority();
+>           String gname = t.getThreadGroup().getName();
+>           return ("(Thread):"+name+":(id)"+ l +"(:priority)" + p + ":(group)" + gname );
+>       }
+>        
+>        
+>        
+>       /**
+>        *获取当前线程 信息
+>        */
+>       public static void logThreadSignature(){
+>           Log.d("ThreadUtils", getThreadSignature());
+>       }
+>        
+>       public static void logThreadSignature(String name ){
+>           Log.d("ThreadUtils", name + ":"+getThreadSignature());
+>       }
+>        
+>       public static void sleepForInSecs(int secs){
+>           try{
+>               Thread.sleep(secs * 1000);
+>           }catch (Exception e) {
+>               // TODO: handle exception
+>               e.printStackTrace();
+>           }
+>       }
+>        
+>       /**
+>        * 讲String放进Bundle 中
+>        * @param message
+>        * @return
+>        */
+>       public static Bundle getStringAsBundle(String message){
+>           Bundle b = new Bundle();
+>           b.putString("message", message);
+>           return b;
+>       }
+>        
+>       /**
+>        * 
+>        * 获取Bundle的String
+>        * @param b
+>        * @return
+>        */
+>       public static String getStringFromABundle(Bundle b){
+>           return b.getString("message");
+>       }
+>   }
+>   ```
 >
-> 有了这样一个类就可以方便我们观察线程的运行
+>   有了这样一个类就可以方便我们观察线程的运行
 >
-> 好了,现在准备好以后就进入正题Handler
+>   好了,现在准备好以后就进入正题Handler
 
-## Handlers
+### (5) Handlers
 
 > ### 为什么要使用Handlers?
 >
-> ​    因为,我们当我们的主线程队列,如果处理一个消息超过5秒,android 就会抛出一个 ANP(无响应)的消息,所以,我们需要把一些要处理比较长的消息,放在一个单独线程里面处理,把处理以后的结果,返回给主线程运行,就需要用的**Handler来进行线程建的通信,关系如下图**;
+> ​	因为,当我们的主线程队列,如果处理一个消息超过5秒,android 就会抛出一个 ANR(无响应)的消息,所以,我们需要把一些要处理比较长的消息,放在一个单独线程里面处理,把处理以后的结果,返回给主线程运行,就需要用的**Handler来进行线程建的通信,关系如下图**;
 >
-> ​     [![mainthread](https://images.cnblogs.com/cnblogs_com/youxilua/201111/201111252149075514.jpg)](http://images.cnblogs.com/cnblogs_com/youxilua/201111/201111252149069201.jpg)
+>  ![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/handler关系进程的组建.png)
 >
 > 下面是**Handler,Message,Message Queue 之间的关系图**
 >
-> [![Handlers](https://images.cnblogs.com/cnblogs_com/youxilua/201111/201111252149154165.jpg)](http://images.cnblogs.com/cnblogs_com/youxilua/201111/201111252149087366.jpg)
+> ![](/Users/candice/Downloads/Worksoace/AndroidStudioProjects/Learn/InterviewQuestionofAndroid/app/pics/handler和messagequeue关系.png)
 >
 > 这个图有4个地方关系到handlers
 >
@@ -1770,11 +1836,11 @@ msg.target.dispatchMessage(msg);
 >
 >    我们每发出一个Message,Message就会落在主线程的队列当中,然后,Handler就可以调用Message绑定的数据,对主线程的组件进行操作.
 
-## Message
+### （6）Message
 
 > 作为handler接受的对象,我们有必要知道Message这个数据类型是个怎样的数据类型
 >
-> 从官方文档中我们可以知道message 关于**数据的字段**
+> 从官方文档中我们可以知道message 关于数据的字段
 >
 > |                   |      |
 > | ----------------- | ---- |
@@ -1789,35 +1855,36 @@ msg.target.dispatchMessage(msg);
 >
 > 在初始化我们的message的时候就可以为我们的Message默认字段赋值,注意赋值顺序!!!
 >
-> ```
-> `Message msg = obtainMessage();``//``设置我们what 字段的初值，注意顺序！！！``Message msg = mHandler.obtainMessage(int what);` `//``下面同理``Message msg = mHandler.obtainMessage(int what,Object object);``Message msg = mHandler.obtainMessage(int what,int arg1,int arg2);``Message msg = mHandler.obtainMessage(int what,int arg1,int arg2, Object obj``);`
-> ```
->
+> ```java
+> Message msg = obtainMessage();
+> //设置我们what 字段的初值，注意顺序！！！
+> Message msg = mHandler.obtainMessage(int what);
 >  
->
->  
+> //下面同理
+> Message msg = mHandler.obtainMessage(int what,Object object);
+> Message msg = mHandler.obtainMessage(int what,int arg1,int arg2);
+> Message msg = mHandler.obtainMessage(int what,int arg1,int arg2, Object obj);
+> ```
 >
 > [handler机制的原理](http://blog.csdn.net/itachi85/article/details/8035333) （原理图）
 >
-> 转自：http://blog.csdn.net/itachi85/article/details/8035333
+> ​	andriod提供了Handler 和 Looper 来满足线程间的通信。Handler先进先出原则。Looper类用来管理特定线程内对象之间的消息交换(MessageExchange)。
 >
->  
+> 1)Looper: 一个线程可以产生一个Looper对象，由它来管理此线程里的MessageQueue(消息队列)。 2)Handler: 你可以构造Handler对象来与Looper沟通，以便push新消息到MessageQueue里;或者接收Looper从Message Queue取出)所送来的消息。
 >
-> **andriod提供了Handler 和 Looper 来满足线程间的通信。Handler先进先出原则。Looper类用来管理特定线程内对象之间的消息交换(MessageExchange)。1)Looper: 一个线程可以产生一个Looper对象，由它来管理此线程里的MessageQueue(消息队列)。 2)Handler: 你可以构造Handler对象来与Looper沟通，以便push新消息到MessageQueue里;或者接收Looper从Message Queue取出)所送来的消息。3) Message Queue(消息队列):用来存放线程放入的消息。** 
+> 3) Message Queue(消息队列):用来存放线程放入的消息。 
 >
-> 4)线程：**UIthread 通常就是main thread**，而[Android](http://lib.csdn.net/base/15)启动程序时会替它建立一个MessageQueue。 
->
->  
+> 线程：**UIthread 通常就是main thread**，而[Android](http://lib.csdn.net/base/15)启动程序时会替它建立一个MessageQueue。 
 >
 > #### 1.Handler创建消息
 >
-> ####         每一个消息都需要被指定的Handler处理，通过Handler创建消息便可以完成此功能。Android消息机制中引入了消息池。Handler创建消息时首先查询消息池中是否有消息存在，如果有直接从消息池中取得，如果没有则重新初始化一个消息实例。使用消息池的好处是：消息不被使用时，并不作为垃圾回收，而是放入消息池，可供下次Handler创建消息时使用。消息池提高了消息对象的复用，减少系统垃圾回收的次数。**消息的创建流程**如图所示。
+> ​	每一个消息都需要被指定的Handler处理，通过Handler创建消息便可以完成此功能。Android消息机制中引入了消息池。Handler创建消息时首先查询消息池中是否有消息存在，如果有直接从消息池中取得，如果没有则重新初始化一个消息实例。使用消息池的好处是：消息不被使用时，并不作为垃圾回收，而是放入消息池，可供下次Handler创建消息时使用。消息池提高了消息对象的复用，减少系统垃圾回收的次数。消息的创建流程如图所示。
 >
 > **![img](http://img.my.csdn.net/uploads/201210/01/1349079003_5588.png)**
 >
->  
+> 
 >
->  
+> 
 >
 > **2.Handler发送消息**
 >
@@ -1829,7 +1896,7 @@ msg.target.dispatchMessage(msg);
 >
 > **Hander持有对UI主线程消息队列MessageQueue和消息循环Looper的引用，子线程可以通过Handler将消息发送到UI线程的消息队列MessageQueue中。**
 >
->  
+> 
 >
 > **3.Handler处理消息**
 >
@@ -1839,17 +1906,17 @@ msg.target.dispatchMessage(msg);
 >
 > ![img](http://img.my.csdn.net/uploads/201210/01/1349079490_2565.png)
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
 > **Android 异步消息处理机制 让你深入理解 Looper、Handler、Message三者关系 （源码！！！）**
 >
@@ -1875,11 +1942,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public static final void prepare() {**  
 > 2. ​        **if (sThreadLocal.get() != null) {**  
@@ -1888,7 +1955,7 @@ msg.target.dispatchMessage(msg);
 > 5. ​        sThreadLocal.set(**new Looper(true));**  
 > 6. }  
 >
-> 
+>
 > **sThreadLocal是一个ThreadLocal对象**，可以在一个线程中存储变量。可以看到，**在第5行，将一个Looper的实例放入了ThreadLocal**，并且**2-4行判断了sThreadLocal是否为null，否则抛出异常**。这也就说明了Looper.prepare()方法不能被调用两次，同时也**保证了一个线程中只有一个Looper实例**~相信有些哥们一定遇到这个错误。
 > 下面看Looper的构造方法：
 >
@@ -1896,11 +1963,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **private Looper(boolean quitAllowed) {**  
 > 2. ​        mQueue = **new MessageQueue(quitAllowed);**  
@@ -1915,11 +1982,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public static void loop() {**  
 > 2. ​        **final Looper me = myLooper();**  
@@ -1968,7 +2035,7 @@ msg.target.dispatchMessage(msg);
 > 45. ​        }  
 > 46. }  
 >
-> 
+>
 > 第2行：
 > public static Looper myLooper() {
 > return **sThreadLocal.get();**
@@ -1995,11 +2062,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public Handler() {**  
 > 2. ​        **this(null, false);**  
@@ -2024,40 +2091,40 @@ msg.target.dispatchMessage(msg);
 > 21. ​        **mAsynchronous** = async;  
 > 22. ​    }  
 >
->  
+> 
 >
 > 14行：通过Looper.myLooper()获取了当前线程保存的Looper实例，然后在19行又获取了这个Looper实例中保存的MessageQueue（消息队列），这样就**保证了handler的实例与我们Looper实例中MessageQueue关联上了。**
 >
 > 然后看我们最常用的sendMessage方法
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public final boolean sendMessage(Message msg)**  
 > 2.  {  
 > 3. ​     **return sendMessageDelayed(msg, 0);**  
 > 4.  }  
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public final boolean sendEmptyMessageDelayed(int what, long delayMillis) {**  
 > 2. ​     Message msg = Message.obtain();  
@@ -2065,17 +2132,17 @@ msg.target.dispatchMessage(msg);
 > 4. ​     **return sendMessageDelayed(msg, delayMillis);**  
 > 5.  }  
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public final boolean sendMessageDelayed(Message msg, long delayMillis)**  
 > 2.    {  
@@ -2085,17 +2152,17 @@ msg.target.dispatchMessage(msg);
 > 6. ​       **return sendMessageAtTime(msg, SystemClock.uptimeMillis() + delayMillis);**  
 > 7.    }  
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public boolean sendMessageAtTime(Message msg, long uptimeMillis) {**  
 > 2. ​       MessageQueue queue = mQueue;  
@@ -2108,23 +2175,23 @@ msg.target.dispatchMessage(msg);
 > 9. ​       **return enqueueMessage(queue, msg, uptimeMillis);**  
 > 10.    }  
 >
->  
+> 
 >
->  
+> 
 >
 > **辗转反则最后调用了sendMessageAtTime，在此方法内部有直接获取MessageQueue然后调用了enqueueMessage方法**，我们再来看看此方法：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **private boolean enqueueMessage(MessageQueue queue, Message msg, long uptimeMillis) {**  
 > 2. ​       msg.target = **this;**  
@@ -2134,27 +2201,27 @@ msg.target.dispatchMessage(msg);
 > 6. ​       **return queue.enqueueMessage(msg, uptimeMillis);**  
 > 7.    }  
 >
->  
+> 
 >
->  
+> 
 >
 > enqueueMessage中首先为meg.target赋值为this，【如果大家还记得Looper的loop方法会取出每个msg然后交给msg,target.dispatchMessage(msg)去处理消息】，也就是把当前的handler作为msg的target属性。最终会调用queue的enqueueMessage的方法，也就是说handler发出的消息，最终会保存到消息队列中去。
 >
->  
+> 
 >
 > 现在已经很清楚了Looper会调用prepare()和loop()方法，在当前执行的线程中保存一个Looper实例，这个实例会保存一个MessageQueue对象，然后当前线程进入一个无限循环中去，不断从MessageQueue中读取Handler发来的消息。然后再回调创建这个消息的handler中的dispathMessage方法，下面我们赶快去看一看这个方法：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public void dispatchMessage(Message msg) {**  
 > 2. ​        **if (msg.callback != null) {**  
@@ -2169,22 +2236,22 @@ msg.target.dispatchMessage(msg);
 > 11. ​        }  
 > 12. ​    }  
 >
-> 
+>
 > 可以看到，第10行，调用了handleMessage方法，下面我们去看这个方法：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. /** 
 > 2.    \* Subclasses must implement this to receive messages. 
@@ -2195,21 +2262,21 @@ msg.target.dispatchMessage(msg);
 >
 > 可以看到这是一个空方法，为什么呢，因为消息的最终回调是由我们控制的，我们在创建handler的时候都是复写handleMessage方法，然后根据msg.what进行消息处理。
 >
->  
+> 
 >
 > 例如：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **private Handler mHandler = new Handler()**  
 > 2. ​    {  
@@ -2227,10 +2294,10 @@ msg.target.dispatchMessage(msg);
 > 14. ​        };  
 > 15. ​    };  
 >
-> 
+>
 > 到此，这个流程已经解释完毕，让我们首先总结一下
 >
->  
+> 
 >
 > **1、首先Looper.prepare()在本线程中保存一个Looper实例，然后该实例中保存一个MessageQueue对象；因为Looper.prepare()在一个线程中只能调用一次，所以MessageQueue在一个线程中只会存在一个。**
 >
@@ -2250,17 +2317,17 @@ msg.target.dispatchMessage(msg);
 >
 > 其实这个问题也是出现这篇博客的原因之一；这里需要说明，有时候为了方便，我们会直接写如下代码：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. mHandler.post(**new Runnable()**  
 > 2. ​        {  
@@ -2272,22 +2339,22 @@ msg.target.dispatchMessage(msg);
 > 8. ​            }  
 > 9. ​        });  
 >
-> 
+>
 > 然后run方法中可以写更新UI的代码，其实这个Runnable并没有创建什么线程，而是发送了一条消息，下面看源码：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public final boolean post(Runnable r)**  
 > 2.    {  
@@ -2298,11 +2365,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **private static Message getPostMessage(Runnable r) {**  
 > 2. ​      Message m = Message.obtain();  
@@ -2310,10 +2377,10 @@ msg.target.dispatchMessage(msg);
 > 4. ​      **return m;**  
 > 5.   }  
 >
-> 
+>
 > 可以看到，在getPostMessage中，得到了一个Message对象，然后将我们创建的Runable对象作为callback属性，赋值给了此message.
 >
->  
+> 
 >
 > 注：产生一个Message对象，可以new  ，也可以使用Message.obtain()方法；两者都可以，但是更建议使用obtain方法，因为Message内部维护了一个Message池用于Message的复用，避免使用new 重新分配内存。
 >
@@ -2321,11 +2388,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public final boolean sendMessageDelayed(Message msg, long delayMillis)**  
 > 2.    {  
@@ -2335,17 +2402,17 @@ msg.target.dispatchMessage(msg);
 > 6. ​       **return sendMessageAtTime(msg, SystemClock.uptimeMillis() + delayMillis);**  
 > 7.    }  
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public boolean sendMessageAtTime(Message msg, long uptimeMillis) {**  
 > 2. ​       MessageQueue queue = mQueue;  
@@ -2360,23 +2427,23 @@ msg.target.dispatchMessage(msg);
 >
 > 最终和handler.sendMessage一样，调用了sendMessageAtTime，然后调用了enqueueMessage方法，给msg.target赋值为handler，最终加入MessagQueue.
 >
->  
+> 
 >
 > 可以看到，这里msg的callback和target都有值，那么会执行哪个呢？
 >
 > 其实上面已经贴过代码，就是dispatchMessage方法：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **public void dispatchMessage(Message msg) {**  
 > 2. ​       **if (msg.callback != null) {**  
@@ -2395,7 +2462,7 @@ msg.target.dispatchMessage(msg);
 >
 > 
 >
->  
+> 
 >
 > 好了，关于Looper , Handler , Message 这三者关系上面已经叙述的非常清楚了。
 >
@@ -2409,17 +2476,17 @@ msg.target.dispatchMessage(msg);
 >
 > 其实Handler不仅可以更新UI，你完全可以在一个子线程中去创建一个Handler，然后使用这个handler实例在任何其他线程中发送消息，最终处理消息的代码都会在你创建Handler实例的线程中运行。
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
+> [copy](http://blog.csdn.net/lmj623565791/article/details/38377229/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/445431)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/445431/fork)
 >
 > 1. **new Thread()**  
 > 2. ​        {  
@@ -2437,22 +2504,22 @@ msg.target.dispatchMessage(msg);
 > 14. ​                    };  
 > 15. ​                };<pre code_snippet_id="445431" snippet_file_name="blog_20140808_19_1943618" name="code" **class="java">                               Looper.loop();                                                                                                                              }             </pre>**  
 >
-> 
+>
 > Android不仅给我们提供了异步消息处理机制让我们更好的完成UI的更新，其实也为我们提供了异步消息处理机制代码的参考~~不仅能够知道原理，最好还可以将此设计用到其他的非Android项目中去~~
 >
->  
+> 
 >
 > 最新补充：
 >
 > 关于后记，有兄弟联系我说，到底可以在哪使用，见博客：[Android Handler 异步消息处理机制的妙用 创建强大的图片加载类](http://blog.csdn.net/lmj623565791/article/details/38476887)
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
 > # [Android之Handler用法总结](http://www.cnblogs.com/devinzhang/archive/2011/12/30/2306980.html)  （Handler与Thread\TimerTask的结合使用思路，不用细看代码。）
 >
@@ -2464,9 +2531,9 @@ msg.target.dispatchMessage(msg);
 >
 > ```
 > new Thread( new Runnable() {     
->     public void run() {     
->          myView.invalidate();    
->      }            
+>  public void run() {     
+>       myView.invalidate();    
+>   }            
 > }).start();
 > ```
 >
@@ -2484,22 +2551,22 @@ msg.target.dispatchMessage(msg);
 >
 > ```
 > Handler myHandler = new Handler() {  
->           public void handleMessage(Message msg) {   
->                switch (msg.what) {   
->                     case TestHandler.GUIUPDATEIDENTIFIER:   
->                          myBounceView.invalidate();  
->                          break;   
->                }   
->                super.handleMessage(msg);   
->           }   
->      };  
+>        public void handleMessage(Message msg) {   
+>             switch (msg.what) {   
+>                  case TestHandler.GUIUPDATEIDENTIFIER:   
+>                       myBounceView.invalidate();  
+>                       break;   
+>             }   
+>             super.handleMessage(msg);   
+>        }   
+>   };  
 > ```
 >
 > ![复制代码](https://common.cnblogs.com/images/copycode.gif)
 >
 > [![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 >
->  
+> 
 >
 > [![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 >
@@ -2507,21 +2574,21 @@ msg.target.dispatchMessage(msg);
 >
 > ```
 > class myThread implements Runnable {   
->           public void run() {  
->                while (!Thread.currentThread().isInterrupted()) {    
->                        
->                     Message message = new Message();   
->                     message.what = TestHandler.GUIUPDATEIDENTIFIER;   
->                       
->                     TestHandler.this.myHandler.sendMessage(message);   
->                     try {   
->                          Thread.sleep(100);    
->                     } catch (InterruptedException e) {   
->                          Thread.currentThread().interrupt();   
->                     }   
->                }   
->           }   
->      }   
+>        public void run() {  
+>             while (!Thread.currentThread().isInterrupted()) {    
+>                     
+>                  Message message = new Message();   
+>                  message.what = TestHandler.GUIUPDATEIDENTIFIER;   
+>                    
+>                  TestHandler.this.myHandler.sendMessage(message);   
+>                  try {   
+>                       Thread.sleep(100);    
+>                  } catch (InterruptedException e) {   
+>                       Thread.currentThread().interrupt();   
+>                  }   
+>             }   
+>        }   
+>   }   
 > ```
 >
 > ![复制代码](https://common.cnblogs.com/images/copycode.gif)
@@ -2540,21 +2607,21 @@ msg.target.dispatchMessage(msg);
 >
 > ```
 > public class JavaTimer extends Activity {  
->   
->     Timer timer = new Timer();  
->     TimerTask task = new TimerTask(){   
->         public void run() {  
->             setTitle("hear me?");  
->         }            
->     };  
 > 
->     public void onCreate(Bundle savedInstanceState) {  
->         super.onCreate(savedInstanceState);  
->         setContentView(R.layout.main);  
->        
->          timer.schedule(task, 10000);  
+>  Timer timer = new Timer();  
+>  TimerTask task = new TimerTask(){   
+>      public void run() {  
+>          setTitle("hear me?");  
+>      }            
+>  };  
 > 
->     }  
+>  public void onCreate(Bundle savedInstanceState) {  
+>      super.onCreate(savedInstanceState);  
+>      setContentView(R.layout.main);  
+>     
+>       timer.schedule(task, 10000);  
+> 
+>  }  
 > }
 > ```
 >
@@ -2562,7 +2629,7 @@ msg.target.dispatchMessage(msg);
 >
 > [![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 >
->  
+> 
 >
 > **方法四：(TimerTask + Handler)**
 >
@@ -2574,34 +2641,34 @@ msg.target.dispatchMessage(msg);
 >
 > ```
 > public class TestTimer extends Activity {  
->   
->     Timer timer = new Timer();  
->     Handler handler = new Handler(){   
->         public void handleMessage(Message msg) {  
->             switch (msg.what) {      
->             case 1:      
->                 setTitle("hear me?");  
->                 break;      
->             }      
->             super.handleMessage(msg);  
->         }  
->           
->     };  
 > 
->     TimerTask task = new TimerTask(){    
->         public void run() {  
->             Message message = new Message();      
->             message.what = 1;      
->             handler.sendMessage(message);    
->         }            
->     };  
+>  Timer timer = new Timer();  
+>  Handler handler = new Handler(){   
+>      public void handleMessage(Message msg) {  
+>          switch (msg.what) {      
+>          case 1:      
+>              setTitle("hear me?");  
+>              break;      
+>          }      
+>          super.handleMessage(msg);  
+>      }  
+>        
+>  };  
 > 
->     public void onCreate(Bundle savedInstanceState) {  
->         super.onCreate(savedInstanceState);  
->         setContentView(R.layout.main);  
->       
->         timer.schedule(task, 10000);  
->     }  
+>  TimerTask task = new TimerTask(){    
+>      public void run() {  
+>          Message message = new Message();      
+>          message.what = 1;      
+>          handler.sendMessage(message);    
+>      }            
+>  };  
+> 
+>  public void onCreate(Bundle savedInstanceState) {  
+>      super.onCreate(savedInstanceState);  
+>      setContentView(R.layout.main);  
+>    
+>      timer.schedule(task, 10000);  
+>  }  
 > }  
 > ```
 >
@@ -2609,7 +2676,7 @@ msg.target.dispatchMessage(msg);
 >
 > [![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 >
->  
+> 
 >
 > **方法五：( Runnable + Handler.postDelayed(runnable,time) )**
 >
@@ -2620,19 +2687,19 @@ msg.target.dispatchMessage(msg);
 > ![复制代码](https://common.cnblogs.com/images/copycode.gif)
 >
 > ```
->     private Handler handler = new Handler();  
->   
->     private Runnable myRunnable= new Runnable() {    
->         public void run() {  
->              
->             if (run) {  
->                 handler.postDelayed(this, 1000);  
->                 count++;  
->             }  
->             tvCounter.setText("Count: " + count);  
+>  private Handler handler = new Handler();  
 > 
->         }  
->     }; 
+>  private Runnable myRunnable= new Runnable() {    
+>      public void run() {  
+>           
+>          if (run) {  
+>              handler.postDelayed(this, 1000);  
+>              count++;  
+>          }  
+>          tvCounter.setText("Count: " + count);  
+> 
+>      }  
+>  }; 
 > ```
 >
 > ![复制代码](https://common.cnblogs.com/images/copycode.gif)
@@ -2651,13 +2718,13 @@ msg.target.dispatchMessage(msg);
 >
 > **知识点总结补充：**
 >
->    很多初入Android或Java开发的新手对Thread、Looper、Handler和Message仍然比较迷惑，衍生的有HandlerThread、java.util.concurrent、Task、AsyncTask由于目前市面上的书籍等资料都没有谈到这些问题，今天就这一问题做更系统性的总结。我们创建的Service、Activity以及Broadcast均是一个主线程处理，这里我们可以理解为**UI线程**。但是在操作一些耗时操作时，比如I/O读写的大文件读写，数据库操作以及网络下载需要很长时间，为了不阻塞用户界面，出现ANR的响应提示窗口，这个时候我们可以考虑使用Thread线程来解决。
+> 很多初入Android或Java开发的新手对Thread、Looper、Handler和Message仍然比较迷惑，衍生的有HandlerThread、java.util.concurrent、Task、AsyncTask由于目前市面上的书籍等资料都没有谈到这些问题，今天就这一问题做更系统性的总结。我们创建的Service、Activity以及Broadcast均是一个主线程处理，这里我们可以理解为**UI线程**。但是在操作一些耗时操作时，比如I/O读写的大文件读写，数据库操作以及网络下载需要很长时间，为了不阻塞用户界面，出现ANR的响应提示窗口，这个时候我们可以考虑使用Thread线程来解决。
 >
->    对于从事过J2ME开发的程序员来说Thread比较简单，直接匿名创建重写run方法，调用start方法执行即可。或者从Runnable接口继承，但对于Android平台来说UI控件都没有设计成为**线程安全类型**，所以需要引入一些同步的机制来使其刷新，这点Google在设计Android时倒是参考了下Win32的消息处理机制。
+> 对于从事过J2ME开发的程序员来说Thread比较简单，直接匿名创建重写run方法，调用start方法执行即可。或者从Runnable接口继承，但对于Android平台来说UI控件都没有设计成为**线程安全类型**，所以需要引入一些同步的机制来使其刷新，这点Google在设计Android时倒是参考了下Win32的消息处理机制。
 >
->  \1. 对于线程中的刷新一个View为基类的界面，可以**使用postInvalidate()方法**在线程中来处理，其中还提供了一些重写方法比如postInvalidate(int left,int top,int right,int bottom) 来刷新一个矩形区域，以及延时执行，比如postInvalidateDelayed(long delayMilliseconds)或postInvalidateDelayed(long delayMilliseconds,int left,int top,int right,int bottom) 方法，其中第一个参数为毫秒
+> \1. 对于线程中的刷新一个View为基类的界面，可以**使用postInvalidate()方法**在线程中来处理，其中还提供了一些重写方法比如postInvalidate(int left,int top,int right,int bottom) 来刷新一个矩形区域，以及延时执行，比如postInvalidateDelayed(long delayMilliseconds)或postInvalidateDelayed(long delayMilliseconds,int left,int top,int right,int bottom) 方法，其中第一个参数为毫秒
 >
->  \2. 当然推荐的方法是通过一个**Handler来处理**这些，可以在一个线程的run方法中调用handler对象的 postMessage或sendMessage方法来实现，Android程序内部维护着一个消息队列，会轮训处理这些，如果你是Win32程序员可以很好理解这些消息处理，不过相对于Android来说没有提供 PreTranslateMessage这些干涉内部的方法。
+> \2. 当然推荐的方法是通过一个**Handler来处理**这些，可以在一个线程的run方法中调用handler对象的 postMessage或sendMessage方法来实现，Android程序内部维护着一个消息队列，会轮训处理这些，如果你是Win32程序员可以很好理解这些消息处理，不过相对于Android来说没有提供 PreTranslateMessage这些干涉内部的方法。
 >
 > \3. Looper又是什么呢? ，其实Android中每一个Thread都跟着一个Looper，Looper可以帮助Thread维护一个消息队列，但是Looper和Handler没有什么关系，我们从开源的代码可以看到Android还提供了一个Thread继承类HanderThread可以帮助我们处理，在HandlerThread对象中可以通过getLooper方法获取一个Looper对象控制句柄，我们可以将其这个Looper对象映射到一个Handler中去来实现一个线程同步机制，Looper对象的执行需要初始化Looper.prepare方法就是昨天我们看到的问题，同时推出时还要释放资源，使用Looper.release方法。
 >
@@ -2669,17 +2736,17 @@ msg.target.dispatchMessage(msg);
 >
 > 摘录自：<http://www.cnblogs.com/playing/archive/2011/03/24/1993583.html>
 >
->  
+> 
 >
->  
+> 
 >
->  
+> 
 >
 > [Android应用程序消息处理机制（Looper、Handler）分析](http://blog.csdn.net/luoshengyang/article/details/6817933)   **（！！！消息的循环、发送、处理原理！深入！分析！）**
 >
 > 转自：http://blog.csdn.net/luoshengyang/article/details/6817933/
 >
->    [Android](http://lib.csdn.net/base/15)应用程序是通过消息来驱动的，系统为每一个应用程序维护一个消息队例，应用程序的主线程不断地从这个消息队例中获取消息（Looper），然后对这些消息进行处理（Handler），这样就实现了通过消息来驱动应用程序的执行，本文将详细分析Android应用程序的消息处理机制。
+> [Android](http://lib.csdn.net/base/15)应用程序是通过消息来驱动的，系统为每一个应用程序维护一个消息队例，应用程序的主线程不断地从这个消息队例中获取消息（Looper），然后对这些消息进行处理（Handler），这样就实现了通过消息来驱动应用程序的执行，本文将详细分析Android应用程序的消息处理机制。
 >
 > ​        前面我们学习Android应用程序中的Activity启动（[Android应用程序启动过程源代码分析](http://blog.csdn.net/luoshengyang/article/details/6689748)和[Android应用程序内部启动Activity过程（startActivity）的源代码分析](http://blog.csdn.net/luoshengyang/article/details/6703247)）、Service启动（[Android系统在新进程中启动自定义服务过程（startService）的原理分析](http://blog.csdn.net/luoshengyang/article/details/6677029)和[Android应用程序绑定服务（bindService）的过程源代码分析](http://blog.csdn.net/luoshengyang/article/details/6745181)）以及广播发送（[Android应用程序发送广播（sendBroadcast）的过程分析](http://blog.csdn.net/luoshengyang/article/details/6744448)）时，它们都有一个共同的特点，当ActivityManagerService需要与应用程序进行并互时，如加载Activity和Service、处理广播待，会通过[Binder进程间通信机制](http://blog.csdn.net/luoshengyang/article/details/6618363)来知会应用程序，应用程序接收到这个请求时，它不是马上就处理这个请求，而是将这个请求封装成一个消息，然后把这个消息放在应用程序的消息队列中去，然后再通过消息循环来处理这个消息。这样做的好处就是消息的发送方只要把消息发送到应用程序的消息队列中去就行了，它可以马上返回去处理别的事情，而不需要等待消息的接收方去处理完这个消息才返回，这样就可以提高系统的并发性。实质上，这就是一种异步处理机制。
 >
@@ -2697,17 +2764,17 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在[Android应用程序进程启动过程的源代码分析](http://blog.csdn.net/luoshengyang/article/details/6747696)一文中，我们分析了Android应用程序进程的启动过程，Android应用程序进程在启动的时候，会在进程中加载ActivityThread类，并且执行这个类的main函数，应用程序的消息循环过程就是在这个main函数里面实现的，我们来看看这个函数的实现，它定义在frameworks/base/core/java/android/app/ActivityThread.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**  
 > 2. ​    ......  
@@ -2736,21 +2803,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这个函数做了两件事情，一是在主线程中创建了一个ActivityThread实例，二是通过Looper类使主线程进入消息循环中，这里我们只关注后者。
 >
->  
+> 
 >
 > ​        首先看Looper.prepareMainLooper函数的实现，这是一个静态成员函数，定义在frameworks/base/core/java/android/os/Looper.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Looper {**  
 > 2. ​    ......  
@@ -2811,19 +2878,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        函数prepareMainLooper做的事情其实就是在线程中创建一个Looper对象，这个Looper对象是存放在sThreadLocal成员变量里面的，成员变量sThreadLocal的类型为ThreadLocal，表示这是一个线程局部变量，即保证每一个调用了prepareMainLooper函数的线程里面都有一个独立的Looper对象。在线程是创建Looper对象的工作是由prepare函数来完成的，而在创建Looper对象的时候，会同时创建一个消息队列MessageQueue，保存在Looper的成员变量mQueue中，后续消息就是存放在这个队列中去。消息队列在Android应用程序消息处理机制中最重要的组件，因此，我们看看它的创建过程，即它的构造函数的实现，实现frameworks/base/core/java/android/os/MessageQueue.java文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class MessageQueue {**  
 > 2. ​    ......  
@@ -2841,19 +2908,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        它的初始化工作都交给JNI方法nativeInit来实现了，这个JNI方法定义在frameworks/base/core/jni/android_os_MessageQueue.cpp文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **static void android_os_MessageQueue_nativeInit(JNIEnv\* env, jobject obj) {**  
 > 2. ​    NativeMessageQueue* nativeMessageQueue = **new NativeMessageQueue();**  
@@ -2867,19 +2934,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在JNI中，也相应地创建了一个消息队列NativeMessageQueue，NativeMessageQueue类也是定义在frameworks/base/core/jni/android_os_MessageQueue.cpp文件中，它的创建过程如下所示：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. NativeMessageQueue::NativeMessageQueue() {  
 > 2. ​    mLooper = Looper::getForThread();  
@@ -2891,21 +2958,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        它主要就是在内部创建了一个Looper对象，注意，这个Looper对象是实现在JNI层的，它与上面Java层中的Looper是不一样的，不过它们是对应的，下面我们进一步分析消息循环的过程的时候，读者就会清楚地了解到它们之间的关系。
 >
->  
+> 
 >
 > ​        这个Looper的创建过程也很重要，不过我们暂时放一放，先分析完android_os_MessageQueue_nativeInit函数的执行，它创建了本地消息队列NativeMessageQueue对象之后，接着调用android_os_MessageQueue_setNativeMessageQueue函数来把这个消息队列对象保存在前面我们在Java层中创建的MessageQueue对象的mPtr成员变量里面：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **static void android_os_MessageQueue_setNativeMessageQueue(JNIEnv\* env, jobject messageQueueObj,**  
 > 2. ​        NativeMessageQueue* nativeMessageQueue) {  
@@ -2915,21 +2982,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里传进来的参数messageQueueObj即为我们前面在Java层创建的消息队列对象，而gMessageQueueClassInfo.mPtr即表示在Java类MessageQueue中，其成员变量mPtr的偏移量，通过这个偏移量，就可以把这个本地消息队列对象natvieMessageQueue保存在Java层创建的消息队列对象的mPtr成员变量中，这是为了后续我们调用Java层的消息队列对象的其它成员函数进入到JNI层时，能够方便地找回它在JNI层所对应的消息队列对象。
 >
->  
+> 
 >
 > ​        我们再回到NativeMessageQueue的构造函数中，看看JNI层的Looper对象的创建过程，即看看它的构造函数是如何实现的，这个Looper类实现在frameworks/base/libs/utils/Looper.cpp文件中：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. Looper::Looper(bool allowNonCallbacks) :  
 > 2. ​    mAllowNonCallbacks(allowNonCallbacks),  
@@ -2963,19 +3030,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这个构造函数做的事情非常重要，它跟我们后面要介绍的应用程序主线程在消息队列中没有消息时要进入等待状态以及当消息队列有消息时要把应用程序主线程唤醒的这两个知识点息息相关。它主要就是通过pipe系统调用来创建了一个管道了：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. int wakeFds[2];  
 > 2. int result = pipe(wakeFds);  
@@ -2986,41 +3053,41 @@ msg.target.dispatchMessage(msg);
 >
 > ​        管道是Linux系统中的一种进程间通信机制，具体可以参考前面一篇文章[Android学习启动篇](http://blog.csdn.net/luoshengyang/article/details/6557518)推荐的一本书《Linux内核源代码情景分析》中的第6章--传统的Uinx进程间通信。简单来说，管道就是一个文件，在管道的两端，分别是两个打开文件文件描述符，这两个打开文件描述符都是对应同一个文件，其中一个是用来读的，别一个是用来写的，一般的使用方式就是，一个线程通过读文件描述符中来读管道的内容，当管道没有内容时，这个线程就会进入等待状态，而另外一个线程通过写文件描述符来向管道中写入内容，写入内容的时候，如果另一端正有线程正在等待管道中的内容，那么这个线程就会被唤醒。这个等待和唤醒的操作是如何进行的呢，这就要借助Linux系统中的epoll机制了。 Linux系统中的epoll机制为处理大批量句柄而作了改进的poll，是Linux下多路复用IO接口select/poll的增强版本，它能显著减少程序在大量并发连接中只有少量活跃的情况下的系统CPU利用率。但是这里我们其实只需要监控的IO接口只有mWakeReadPipeFd一个，即前面我们所创建的管道的读端，为什么还需要用到epoll呢？有点用牛刀来杀鸡的味道。其实不然，这个Looper类是非常强大的，它除了监控内部所创建的管道接口之外，还提供了addFd接口供外界面调用，外界可以通过这个接口把自己想要监控的IO事件一并加入到这个Looper对象中去，当所有这些被监控的IO接口上面有事件发生时，就会唤醒相应的线程来处理，不过这里我们只关心刚才所创建的管道的IO事件的发生。
 >
->  
+> 
 >
 > ​        要使用Linux系统的epoll机制，首先要通过epoll_create来创建一个epoll专用的文件描述符：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. mEpollFd = epoll_create(EPOLL_SIZE_HINT);  
 >
 > ​       传入的参数EPOLL_SIZE_HINT是在这个mEpollFd上能监控的最大文件描述符数。
 >
->  
+> 
 >
 > ​       接着还要通过epoll_ctl函数来告诉epoll要监控相应的文件描述符的什么事件：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **struct epoll_event eventItem;**  
 > 2. memset(& eventItem, 0, **sizeof(epoll_event)); // zero out unused members of data field union**  
@@ -3031,7 +3098,7 @@ msg.target.dispatchMessage(msg);
 > ​       这里就是告诉mEpollFd，它要监控mWakeReadPipeFd文件描述符的EPOLLIN事件，即当管道中有内容可读时，就唤醒当前正在等待管道中的内容的线程。
 > ​       C++层的这个Looper对象创建好了之后，就返回到JNI层的NativeMessageQueue的构造函数，最后就返回到Java层的消息队列MessageQueue的创建过程，这样，Java层的Looper对象就准备好了。有点复杂，我们先小结一下这一步都做了些什么事情：
 >
->  
+> 
 >
 > ​       A. 在Java层，创建了一个Looper对象，这个Looper对象是用来进入消息循环的，它的内部有一个消息队列MessageQueue对象mQueue；
 >
@@ -3041,17 +3108,17 @@ msg.target.dispatchMessage(msg);
 >
 > ​       回到ActivityThread类的main函数中，在上面这些工作都准备好之后，就调用Looper类的loop函数进入到消息循环中去了：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Looper {**  
 > 2. ​    ......  
@@ -3088,21 +3155,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里就是进入到消息循环中去了，它不断地从消息队列mQueue中去获取下一个要处理的消息msg，如果消息的target成员变量为null，就表示要退出消息循环了，否则的话就要调用这个target对象的dispatchMessage成员函数来处理这个消息，这个target对象的类型为Handler，下面我们分析消息的发送时会看到这个消息对象msg是如设置的。
 >
->  
+> 
 >
 > ​        这个函数最关键的地方便是从消息队列中获取下一个要处理的消息了，即MessageQueue.next函数，它实现frameworks/base/core/java/android/os/MessageQueue.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class MessageQueue {**  
 > 2. ​    ......  
@@ -3186,41 +3253,41 @@ msg.target.dispatchMessage(msg);
 >
 > ​        调用这个函数的时候，有可能会让线程进入等待状态。什么情况下，线程会进入等待状态呢？两种情况，一是当消息队列中没有消息时，它会使线程进入等待状态；二是消息队列中有消息，但是消息指定了执行的时间，而现在还没有到这个时间，线程也会进入等待状态。消息队列中的消息是按时间先后来排序的，后面我们在分析消息的发送时会看到。
 >
->  
+> 
 >
 > ​        执行下面语句是看看当前消息队列中有没有消息：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. nativePollOnce(mPtr, nextPollTimeoutMillis);  
 >
 > ​        这是一个JNI方法，我们等一下再分析，这里传入的参数mPtr就是指向前面我们在JNI层创建的NativeMessageQueue对象了，而参数nextPollTimeoutMillis则表示如果当前消息队列中没有消息，它要等待的时候，for循环开始时，传入的值为0，表示不等待。
 >
->  
+> 
 >
 > ​        当前nativePollOnce返回后，就去看看消息队列中有没有消息：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **final Message msg = mMessages;**  
 > 2. **if (msg != null) {**  
@@ -3240,59 +3307,59 @@ msg.target.dispatchMessage(msg);
 >
 > ​        如果消息队列中有消息，并且当前时候大于等于消息中的执行时间，那么就直接返回这个消息给Looper.loop消息处理，否则的话就要等待到消息的执行时间：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. nextPollTimeoutMillis = (**int) Math.min(when - now, Integer.MAX_VALUE);**  
 >
 > ​        如果消息队列中没有消息，那就要进入无穷等待状态直到有新消息了：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. nextPollTimeoutMillis = -1;  
 >
 > ​        -1表示下次调用nativePollOnce时，如果消息中没有消息，就进入无限等待状态中去。
 >
->  
+> 
 >
 > ​        这里计算出来的等待时间都是在下次调用nativePollOnce时使用的。
 >
 > ​        这里说的等待，是空闲等待，而不是忙等待，因此，在进入空闲等待状态前，如果应用程序注册了IdleHandler接口来处理一些事情，那么就会先执行这里IdleHandler，然后再进入等待状态。IdlerHandler是定义在MessageQueue的一个内部类：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class MessageQueue {**  
 > 2. ​    ......  
@@ -3317,7 +3384,7 @@ msg.target.dispatchMessage(msg);
 >
 > ​        它只有一个成员函数queueIdle，执行这个函数时，如果返回值为false，那么就会从应用程序中移除这个IdleHandler，否则的话就会在应用程序中继续维护着这个IdleHandler，下次空闲时仍会再执会这个IdleHandler。MessageQueue提供了addIdleHandler和removeIdleHandler两注册和删除IdleHandler。
 >
->  
+> 
 >
 > ​        回到MessageQueue函数中，它接下来就是在进入等待状态前，看看有没有IdleHandler是需要执行的：
 >
@@ -3325,11 +3392,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. // If first time, then get the number of idlers to run.  
 > 2. **if (pendingIdleHandlerCount < 0) {**  
@@ -3348,21 +3415,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        如果没有，即pendingIdleHandlerCount等于0，那下面的逻辑就不执行了，通过continue语句直接进入下一次循环，否则就要把注册在mIdleHandlers中的IdleHandler取出来，放在mPendingIdleHandlers数组中去。
 >
->  
+> 
 >
 > ​        接下来就是执行这些注册了的IdleHanlder了：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. // Run the idle handlers.  
 > 2. // We only ever reach this code block during the first iteration.  
@@ -3386,19 +3453,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​         执行完这些IdleHandler之后，线程下次调用nativePollOnce函数时，就不设置超时时间了，因为，很有可能在执行IdleHandler的时候，已经有新的消息加入到消息队列中去了，因此，要重置nextPollTimeoutMillis的值：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. // While calling an idle handler, a new message could have been delivered  
 > 2. // so go back and look again for a pending message without waiting.  
@@ -3406,19 +3473,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        分析完MessageQueue的这个next函数之后，我们就要深入分析一下JNI方法nativePollOnce了，看看它是如何进入等待状态的，这个函数定义在frameworks/base/core/jni/android_os_MessageQueue.cpp文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **static void android_os_MessageQueue_nativePollOnce(JNIEnv\* env, jobject obj,**  
 > 2. ​        jint ptr, jint timeoutMillis) {  
@@ -3428,19 +3495,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这个函数首先是通过传进入的参数ptr取回前面在Java层创建MessageQueue对象时在JNI层创建的NatvieMessageQueue对象，然后调用它的pollOnce函数：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **void NativeMessageQueue::pollOnce(int timeoutMillis) {**  
 > 2. ​    mLooper->pollOnce(timeoutMillis);  
@@ -3448,19 +3515,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里将操作转发给mLooper对象的pollOnce函数处理，这里的mLooper对象是在C++层的对象，它也是在前面在JNI层创建的NatvieMessageQueue对象时创建的，它的pollOnce函数定义在frameworks/base/libs/utils/Looper.cpp文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. int Looper::pollOnce(int timeoutMillis, int* outFd, int* outEvents, **void\** outData) {**  
 > 2. ​    int result = 0;  
@@ -3479,21 +3546,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        为了方便讨论，我们把这个函数的无关部分都去掉，它主要就是调用pollInner函数来进一步操作，如果pollInner返回值不等于0，这个函数就可以返回了。
 >
->  
+> 
 >
 > ​        函数pollInner的定义如下：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. int Looper::pollInner(int timeoutMillis) {  
 > 2. ​    ......  
@@ -3557,39 +3624,39 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里，首先是调用epoll_wait函数来看看epoll专用文件描述符mEpollFd所监控的文件描述符是否有IO事件发生，它设置监控的超时时间为timeoutMillis：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. int eventCount = epoll_wait(mEpollFd, eventItems, EPOLL_MAX_EVENTS, timeoutMillis);  
 >
 > ​        回忆一下前面的Looper的构造函数，我们在里面设置了要监控mWakeReadPipeFd文件描述符的EPOLLIN事件。
 >
->  
+> 
 >
 > ​        当mEpollFd所监控的文件描述符发生了要监控的IO事件后或者监控时间超时后，线程就从epoll_wait返回了，否则线程就会在epoll_wait函数中进入睡眠状态了。返回后如果eventCount等于0，就说明是超时了：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **if (eventCount == 0) {**  
 > 2. ​    ......  
@@ -3599,19 +3666,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​       如果eventCount不等于0，就说明发生要监控的事件：
 >
->  
+> 
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **for (int i = 0; i < eventCount; i++) {**  
 > 2. ​    int fd = eventItems[i].data.fd;  
@@ -3629,21 +3696,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里我们只关注mWakeReadPipeFd文件描述符上的事件，如果在mWakeReadPipeFd文件描述符上发生了EPOLLIN就说明应用程序中的消息队列里面有新的消息需要处理了，接下来它就会先调用awoken函数清空管道中的内容，以便下次再调用pollInner函数时，知道自从上次处理完消息队列中的消息后，有没有新的消息加进来。
 >
->  
+> 
 >
 > ​        函数awoken的实现很简单，它只是把管道中的内容都读取出来：
 >
->  
+> 
 >
 > [cpp]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **void Looper::awoken() {**  
 > 2. ​    ......  
@@ -3657,7 +3724,7 @@ msg.target.dispatchMessage(msg);
 >
 > ​        因为当其它的线程向应用程序的消息队列加入新的消息时，会向这个管道写入新的内容来通知应用程序主线程有新的消息需要处理了，下面我们分析消息的发送的时候将会看到。
 >
->  
+> 
 >
 > ​        这样，消息的循环过程就分析完了，这部分逻辑还是比较复杂的，它利用Linux系统中的管道（pipe）进程间通信机制来实现消息的等待和处理，不过，了解了这部分内容之后，下面我们分析消息的发送和处理就简单多了。
 >
@@ -3666,17 +3733,17 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在[Android应用程序启动过程源代码分析](http://blog.csdn.net/luoshengyang/article/details/6689748)这篇文章的Step 30中，ActivityManagerService通过调用ApplicationThread类的scheduleLaunchActivity函数通知应用程序，它可以加载应用程序的默认Activity了，这个函数定义在frameworks/base/core/java/android/app/ActivityThread.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**    
 > 2. ​    
@@ -3717,17 +3784,17 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里把相关的参数都封装成一个ActivityClientRecord对象r，然后调用queueOrSendMessage函数来往应用程序的消息队列中加入一个新的消息（H.LAUNCH_ACTIVITY），这个函数定义在frameworks/base/core/java/android/app/ActivityThread.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**    
 > 2. ​    
@@ -3766,19 +3833,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在queueOrSendMessage函数中，又进一步把上面传进来的参数封装成一个Message对象msg，然后通过mH.sendMessage函数把这个消息对象msg加入到应用程序的消息队列中去。这里的mH是ActivityThread类的成员变量，它的类型为H，继承于Handler类，它定义在frameworks/base/core/java/android/app/ActivityThread.java文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**    
 > 2. ​    
@@ -3801,22 +3868,22 @@ msg.target.dispatchMessage(msg);
 > 19. ​    ......    
 > 20. }   
 >
->  
+> 
 >
 > ​        这个H类就是通过其成员函数handleMessage函数来处理消息的了，后面我们分析消息的处理过程时会看到。
 > ​        ActivityThread类的这个mH成员变量是什么时候创建的呢？我们前面在分析应用程序的消息循环时，说到当应用程序进程启动之后，就会加载ActivityThread类的main函数里面，在这个main函数里面，在通过Looper类进入消息循环之前，会在当前进程中创建一个ActivityThread实例：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**  
 > 2. ​    ......  
@@ -3833,19 +3900,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在创建这个实例的时候，就会同时创建其成员变量mH了：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**  
 > 2. ​    ......  
@@ -3857,19 +3924,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        前面说过，H类继承于Handler类，因此，当创建这个H对象时，会调用Handler类的构造函数，这个函数定义在frameworks/base/core/java/android/os/Handler.java文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Handler {**  
 > 2. ​    ......  
@@ -3892,19 +3959,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在Hanlder类的构造函数中，主要就是初始成员变量mLooper和mQueue了。这里的myLooper是Looper类的静态成员函数，通过它来获得一个Looper对象，这个Looper对象就是前面我们在分析消息循环时，在ActivityThread类的main函数中通过Looper.prepareMainLooper函数创建的。Looper.myLooper函数实现在frameworks/base/core/java/android/os/Looper.java文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Looper {**  
 > 2. ​    ......  
@@ -3918,21 +3985,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        有了这个Looper对象后，就可以通过Looper.mQueue来访问应用程序的消息队列了。
 >
->  
+> 
 >
 > ​        有了这个Handler对象mH后，就可以通过它来往应用程序的消息队列中加入新的消息了。回到前面的queueOrSendMessage函数中，当它准备好了一个Message对象msg后，就开始调用mH.sendMessage函数来发送消息了，这个函数定义在frameworks/base/core/java/android/os/Handler.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Handler {**  
 > 2. ​    ......  
@@ -3969,27 +4036,27 @@ msg.target.dispatchMessage(msg);
 >
 > ​        在发送消息时，是可以指定消息的处理时间的，但是通过sendMessage函数发送的消息的处理时间默认就为当前时间，即表示要马上处理，因此，从sendMessage函数中调用sendMessageDelayed函数，传入的时间参数为0，表示这个消息不要延时处理，而在sendMessageDelayed函数中，则会先获得当前时间，然后加上消息要延时处理的时间，即得到这个处理这个消息的绝对时间，然后调用sendMessageAtTime函数来把消息加入到应用程序的消息队列中去。
 >
->  
+> 
 >
 > ​        在sendMessageAtTime函数，首先得到应用程序的消息队列mQueue，这是在Handler对象构造时初始化好的，前面已经分析过了，接着设置这个消息的目标对象target，即这个消息最终是由谁来处理的：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. msg.target = **this;**  
 >
 > ​        这里将它赋值为this，即表示这个消息最终由这个Handler对象来处理，即由ActivityThread对象的mH成员变量来处理。
 >
->  
+> 
 >
 > ​        函数最后调用queue.enqueueMessage来把这个消息加入到应用程序的消息队列中去，这个函数实现在frameworks/base/core/java/android/os/MessageQueue.java文件中：
 >
@@ -3997,11 +4064,11 @@ msg.target.dispatchMessage(msg);
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class MessageQueue {**  
 > 2. ​    ......  
@@ -4043,21 +4110,21 @@ msg.target.dispatchMessage(msg);
 >
 > ​        把消息加入到消息队列时，分两种情况，一种当前消息队列为空时，这时候应用程序的主线程一般就是处于空闲等待状态了，这时候就要唤醒它，另一种情况是应用程序的消息队列不为空，这时候就不需要唤醒应用程序的主线程了，因为这时候它一定是在忙着处于消息队列中的消息，因此不会处于空闲等待的状态。
 >
->  
+> 
 >
 > ​        第一种情况比较简单，只要把消息放在消息队列头就可以了：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. msg.next = p;  
 > 2. mMessages = msg;  
@@ -4065,19 +4132,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        第二种情况相对就比较复杂一些了，前面我们说过，当往消息队列中发送消息时，是可以指定消息的处理时间的，而消息队列中的消息，就是按照这个时间从小到大来排序的，因此，当把新的消息加入到消息队列时，就要根据它的处理时间来找到合适的位置，然后再放进消息队列中去：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. Message prev = **null;**  
 > 2. **while (p != null && p.when <= when) {**  
@@ -4090,19 +4157,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        把消息加入到消息队列去后，如果应用程序的主线程正处于空闲等待状态，就需要调用natvieWake函数来唤醒它了，这是一个JNI方法，定义在frameworks/base/core/jni/android_os_MessageQueue.cpp文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **static void android_os_MessageQueue_nativeWake(JNIEnv\* env, jobject obj, jint ptr) {**  
 > 2. ​    NativeMessageQueue* nativeMessageQueue = reinterpret_cast<NativeMessageQueue*>(ptr);  
@@ -4111,19 +4178,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这个JNI层的NativeMessageQueue对象我们在前面分析消息循环的时候创建好的，保存在Java层的MessageQueue对象的mPtr成员变量中，这里把它取回来之后，就调用它的wake函数来唤醒应用程序的主线程，这个函数也是定义在frameworks/base/core/jni/android_os_MessageQueue.cpp文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **void NativeMessageQueue::wake() {**  
 > 2. ​    mLooper->wake();  
@@ -4131,19 +4198,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里它又通过成员变量mLooper的wake函数来执行操作，这里的mLooper成员变量是一个C++层实现的Looper对象，它定义在frameworks/base/libs/utils/Looper.cpp文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **void Looper::wake() {**  
 > 2. ​    ......  
@@ -4158,7 +4225,7 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这个wake函数很简单，只是通过打开文件描述符mWakeWritePipeFd往管道的写入一个"W"字符串。其实，往管道写入什么内容并不重要，往管道写入内容的目的是为了唤醒应用程序的主线程。前面我们在分析应用程序的消息循环时说到，当应用程序的消息队列中没有消息处理时，应用程序的主线程就会进入空闲等待状态，而这个空闲等待状态就是通过调用这个Looper类的pollInner函数来进入的，具体就是在pollInner函数中调用epoll_wait函数来等待管道中有内容可读的。
 >
->  
+> 
 >
 > ​        这时候既然管道中有内容可读了，应用程序的主线程就会从这里的Looper类的pollInner函数返回到JNI层的nativePollOnce函数，最后返回到Java层中的MessageQueue.next函数中去，这里它就会发现消息队列中有新的消息需要处理了，于就会处理这个消息。
 >
@@ -4166,17 +4233,17 @@ msg.target.dispatchMessage(msg);
 >
 > ​        前面在分析消息循环时，说到应用程序的主线程是在Looper类的loop成员函数中进行消息循环过程的，这个函数定义在frameworks/base/core/java/android/os/Looper.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Looper {**  
 > 2. ​    ......  
@@ -4213,23 +4280,23 @@ msg.target.dispatchMessage(msg);
 >
 > ​        它从消息队列中获得消息对象msg后，就会调用它的target成员变量的dispatchMessage函数来处理这个消息。在前面分析消息的发送时说过，这个消息对象msg的成员变量target是在发送消息的时候设置好的，一般就通过哪个Handler来发送消息，就通过哪个Handler来处理消息。
 >
->  
+> 
 >
 > ​        我们继续以前面分析消息的发送时所举的例子来分析消息的处理过程。前面说到，在[Android应用程序启动过程源代码分析](http://blog.csdn.net/luoshengyang/article/details/6689748)这篇文章的Step 30中，ActivityManagerService通过调用ApplicationThread类的scheduleLaunchActivity函数通知应用程序，它可以加载应用程序的默认Activity了，而ApplicationThread类的scheduleLaunchActivity函数最终把这个请求封装成一个消息，然后通过ActivityThread类的成员变量mH来把这个消息加入到应用程序的消息队列中去。现在要对这个消息进行处理了，于是就会调用H类的dispatchMessage函数进行处理。
 >
 > ​        H类没有实现自己的dispatchMessage函数，但是它继承了父类Handler的dispatchMessage函数，这个函数定义在frameworks/base/core/java/android/os/ Handler.java文件中：
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public class Handler {**  
 > 2. ​    ......  
@@ -4252,19 +4319,19 @@ msg.target.dispatchMessage(msg);
 >
 > ​        这里的消息对象msg的callback成员变量和Handler类的mCallBack成员变量一般都为null，于是，就会调用Handler类的handleMessage函数来处理这个消息，由于H类在继承Handler类时，重写了handleMessage函数，因此，这里调用的实际上是H类的handleMessage函数，这个函数定义在frameworks/base/core/java/android/app/ActivityThread.java文件中：
 >
->  
+> 
 >
->  
+> 
 >
 > [java]
 >
 > view plain
 >
->  [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
+> [copy](http://blog.csdn.net/luoshengyang/article/details/6817933/)
 >
->  
+> 
 >
->  [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
+> [![在CODE上查看代码片](https://code.csdn.net/assets/CODE_ico.png)](https://code.csdn.net/snippets/130108)[![派生到我的代码片](https://code.csdn.net/assets/ico_fork.svg)](https://code.csdn.net/snippets/130108/fork)
 >
 > 1. **public final class ActivityThread {**    
 > 2. ​    
@@ -4296,7 +4363,7 @@ msg.target.dispatchMessage(msg);
 >
 > ​         因为前面在分析消息的发送时所举的例子中，发送的消息的类型为H.LAUNCH_ACTIVITY，因此，这里就会调用ActivityThread类的handleLaunchActivity函数来真正地处理这个消息了，后面的具体过程就可以参考[Android应用程序启动过程源代码分析](http://blog.csdn.net/luoshengyang/article/details/6689748)这篇文章了。
 >
->  
+> 
 >
 > ​         至此，我们就从消息循环、消息发送和消息处理三个部分分析完Android应用程序的消息处理机制了，为了更深理解，这里我们对其中的一些要点作一个总结：
 >
