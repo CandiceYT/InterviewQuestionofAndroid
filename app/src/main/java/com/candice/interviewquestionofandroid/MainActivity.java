@@ -14,6 +14,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 	private final  static int REQUEST_CODE_CAPTURE = 0;
 	private Button mBtnTakePic;
 	private Button mBtnOpen;
+	private  String name ="";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
