@@ -1,12 +1,17 @@
 package com.candice.interviewquestionofandroid;
 
+import android.annotation.TargetApi;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 	public static final String TAG =MainActivity.class.getSimpleName();
@@ -15,7 +20,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 	private Button mBtnTakePic;
 	private Button mBtnOpen;
 	private  String name ="";
-
+	private String text ="测试啊本月已成功邀请 <strong><font color=\"#FF0000\">" + 100 + "</font><strong>人";
+	@TargetApi( Build.VERSION_CODES.N )
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -24,12 +30,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 		mBtnTakePic = ( Button ) findViewById(R.id.btn_take_pics);
 		//打开相册
 		mBtnOpen = ( Button ) findViewById(R.id.btn_open);
+		TextView content = ( TextView ) findViewById(R.id.tv_content);
 
 		mBtnTakePic.setOnClickListener(this);
 		mBtnOpen.setOnClickListener(this);
 		Log.e(TAG,"onCreate");
 
-
+		Spanned fromHtml = Html.fromHtml(text, Html.FROM_HTML_MODE_COMPACT);
+		content.setText(fromHtml);
 	}
 
 

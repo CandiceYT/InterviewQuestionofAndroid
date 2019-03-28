@@ -1,3 +1,7 @@
+[TOC]
+
+
+
 ### 1.导致内存泄漏的原因
 
 >**根本原因:** 长生命周期的对象持有短生命周期的对象。短周期对象就无法及时释放。
@@ -108,6 +112,50 @@
 >**应用场景**
 >
 >需要在多个部件(Activity或Service)之间通过Intent传递一些数据，简单类型（如：数字、字符串）的可以直接放入Intent。复杂类型必须实现Parcelable接口。
+
+### 8.四大组件简介
+
+>**Activity**
+>
+>​	用户可操作的可视化界面，为用户提供一个完成操作指令的窗口。一个Activity通常是一个单独的屏幕，Activity通过Intent来进行通信。Android中会维持一个Activity Stack，当一个新Activity创建时，它就会放到栈顶，这个Activity就处于运行状态。
+
+>**Service**
+>
+>​	运行在手机后台，适合执行不需和用户交互且还需长期运行的任务。
+
+>**BroadcastReceiver**
+>
+>​	运用在应用程序间传输信息，可以使用广播接收器来让应用对一个外部事件做出响应。
+
+>**ContentProvider**
+>
+>​	使一个应用程序的指定数据集提供给其他应用程序，其他应用可通过ContentResolver类从该内容提供者中获取或存入数据。它提供了一种跨进程数据共享的方式，当数据被修改后，ContentResolver接口的notifyChange函数通知那些注册监控特定URI的ContentObserver对象。
+
+### 9.四大组件的生命周期
+
+>**Activity**
+>
+>​	onCreate()->onStart()->onResume()->onPause()->onStop()->onDestory()
+>
+>onCreate(): 为Activity设置布局，此时界面还不可见；
+>
+>onStart(): Activity可见但还不能与用户交互，不能获得焦点;
+>
+>onRestart(): 重新启动Activity时被回调;
+>
+>onResume(): Activity可见且可与用户进行交互;
+>
+>onPause(): 当前Activity暂停，不可与用户交互，但还可见。在新Activity启动前被系统调用保存现有的Activity中的持久数据、停止动画等;
+>
+>onStop(): 当Activity被新的Activity覆盖不可见时被系统调用
+>
+>onDestory(): 当Activity被系统销毁杀掉或是由于内存不足时调用
+
+>**Service**
+>
+>
+>
+>
 
 
 
