@@ -153,9 +153,111 @@
 
 >**Service**
 >
+>- onBind方式绑定的
 >
+>	onCreate->onBind->onUnBind->onDestory（不管调用bindService几次，onCreate只会调用一次，onStart不会被调用，建立连接后，service会一直运行，直到调用unBindService或是之前调用的bindService的Context不存在了，系统会自动停止Service,对应的onDestory会被调用）。
 >
+>- startService启动的：
 >
+>	onCreate->onStartCommand->onDestory(start多次，onCreate只会被调用一次，onStart会调用多次，该service会在后台运行，直至被调用stopService或是stopSelf)。
+>
+>- 又被启动又被绑定的服务：
+>
+>	不管如何调用onCreate()只被调用一次，startService调用多少次，onStart就会被调用多少次，而unbindService不会停止服务，必须调用stopService或是stopSelf来停止服务。必须unbindService和stopService(stopSelf）同时都调用了才会停止服务。
+>
+>**BroadcastReceiver**
+>
+>- 动态注册
+>
+>	存活周期是在Context.registerReceiver和Context.unregisterReceiver之间，BroadcastReceiver每次收到广播都是使用注册传入的对象处理的。
+>
+>- 静态注册
+>
+>	 进程在的情况下，receiver会正常收到广播，调用onReceive方法；生命周期只存活在onReceive函数中，此方法结束，BroadcastReceiver就销毁了。onReceive()只有十几秒存活时间，在onReceive()内操作超过10S，就会报ANR。
+>
+>进程不存在的情况，广播相应的进程会被拉活，Application.onCreate会被调用，再调用onReceive。
+>
+>**ContentProvider**
+>
+>​	应该和应用的生命周期一样，它属于系统应用，应用启动时，它会跟着初始化，应用关闭或被杀，它会跟着结束。
+
+### 10.Activity之间的通信方式
+
+- 通过Intent方式传递参数跳转
+- 通过广播方式
+- 通过接口回调方式
+- 借助类的静态变量或全局变量
+- 借助SharedPreference或是外部存储，如数据库或本地文件
+
+### 11.Activity各种情况下的生命周期
+
+- Activity各种情况下的生命周期
+
+	onPause(A)->onCreate(B)->onStart(B)->onResume(B)->oStop(A)
+
+	这时如果按回退键回退到A  onPause(B)->onRestart(A)->onStart(A)->onResume(A)->oStop(B)
+
+	如果在切换到B后调用了A.finish()，则会走到onDestory(A)，这时点回退键会退出应用
+
+- 如果在切换到B后调用了A.finish()，则会走到onDestory(A)，这时点回退键会退出应用
+
+	onPause(A)->onCreate(B)->onStart(B)->onResume(B)
+
+	这时如果回退到A  onPause(B)->onResume(A)->oStop(B)->onDestory(B)
+
+- Activity(A)启动后点击Home键再回到应用的生命周期
+
+	onPause(A)->oStop(A)->onRestart(A)->onStart(A)->onResume(A)
+
+- 横竖屏切换的时候，Activity 各种情况下的生命周期**
+
+	   >- 切换横屏时：onSaveInstanceState->onPause->onStop->onDestory->onCreate->onStart->onRestoreInstanceState->onResume
+	   >
+	   >- 切换竖屏时：会打印两次相同的log  
+	   >
+	   >	onSaveInstanceState->onPause->onStop->onDestory->onCreate->onStart->onRestoreInstanceState->onResume->onSaveInstanceState->onPause->onStop->onDestory->onCreate->onStart->onRestoreInstanceState->onResume
+	   >
+	   >- 如果在AndroidMainfest.xml中修改该Activity的属性，添加android:configChanges="orientation"
+	   >
+	   >	横竖屏切换，打印的log一样，同1)
+	   >
+	   >- 如果AndroidMainfest.xml中该Activity中的android:configChanges="orientation|keyboardHidden"，则只会打印
+	   >
+	   >	onConfigurationChanged->
+
+### 12.Activity与Fragment之间生命周期比较
+
+>**Fragment生命周期:**
+>
+>onAttach->onCreate->onCreateView->onActivityCreated->onStart->onResume->onPause->onStop->onDestoryView->onDestory->onDetach
+>
+>**切换到该Fragment：**
+>
+>onAttach->onCreate->onCreateView->onActivityCreated->onStart->onResume
+>
+>**按下Power键：**
+>
+>onPause->onSaveInstanceState->onStop
+>
+>**点亮屏幕解锁：**
+>
+>onStart->onRestoreInstanceState->onResume
+>
+>**切换到其他Fragment:**
+>
+>onPause->onStop->onDestoryView
+>
+>**切回到该Fragment:** 
+>
+>onCreateView->onActivityCreated->onStart->onResume
+>
+>**退出应用：**
+>
+>onPause->onStop->onDestoryView->onDestory->onDetach
+
+>
+
+ 
 
 
 
