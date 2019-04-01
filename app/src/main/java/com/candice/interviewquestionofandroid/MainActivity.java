@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 			case R.id.btn_take_pics:
 //				takePhotos();
            Main2Activity.launch(MainActivity.this);
+           this.finish();
 				break;
 			case R.id.btn_open:
 				AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
